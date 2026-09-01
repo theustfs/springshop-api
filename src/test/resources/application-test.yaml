@@ -1,0 +1,11 @@
+spring:
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    clean-disabled: false
+
+logging:
+  level:
+    org.hibernate.sql: TRACE

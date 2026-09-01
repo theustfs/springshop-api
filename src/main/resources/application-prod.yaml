@@ -1,0 +1,33 @@
+server:
+  compression:
+    enabled: true
+  forward-headers-strategy: framework
+  tomcat:
+    max-connections: 20
+    accept-count: 10
+    threads:
+      max: 20
+      min-spare: 2
+    keep-alive-timeout: 10s
+    connection-timeout: 5s
+    max-keep-alive-requests: 100
+
+datasource:
+  hikari:
+    maximum-pool-size: 5
+    minimum-idle: 1
+    idle-timeout: 30000
+    max-lifetime: 600000
+
+logging:
+  level:
+    root: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
