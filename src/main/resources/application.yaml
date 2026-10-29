@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: springshop
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+
+  mvc:
+    log-resolved-exception: false
+
+  flyway:
+    validate-on-migrate: true
+    baseline-on-migrate: false
+
+  jackson:
+    default-property-inclusion: non_null
+
+springdoc:
+  api-docs:
+    enabled: false
+
+  swagger-ui:
+    enabled: false

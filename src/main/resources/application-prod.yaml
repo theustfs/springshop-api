@@ -1,0 +1,51 @@
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+  forward-headers-strategy: native
+
+  compression:
+    enabled: true
+    min-response-size: 2KB
+
+  error:
+    include-binding-errors: never
+    include-exception: false
+    include-message: never
+    include-stacktrace: never
+
+  tomcat:
+    accept-count: ${SERVER_TOMCAT_ACCEPT_COUNT:50}
+    connection-timeout: 5s
+    keep-alive-timeout: 15s
+    max-connections: ${SERVER_TOMCAT_MAX_CONNECTIONS:200}
+    max-keep-alive-requests: 100
+    redirect-context-root: false
+    threads:
+      max: ${SERVER_TOMCAT_THREADS_MAX:50}
+      max-queue-capacity: ${SERVER_TOMCAT_THREADS_QUEUE_CAPACITY:100}
+      min-spare: ${SERVER_TOMCAT_THREADS_MIN_SPARE:4}
+
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+
+logging:
+  level:
+    root: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+      group:
+        readiness:
+          include: readinessState,db,redis,rabbit
+
+      show-details: never
