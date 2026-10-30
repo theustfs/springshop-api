@@ -4,7 +4,7 @@
 
 Springshop API is a portfolio e-commerce backend built with Spring Boot. The goal is to demonstrate a production-minded modular monolith: clear business boundaries, transactional consistency, secure APIs, asynchronous integration, automated tests, and a repeatable container deployment.
 
-The repository is currently in its foundation stage. Runtime infrastructure, environment profiles, Testcontainers support, CI/CD workflows, and deployment packaging exist. Business capabilities such as authentication, catalog, inventory, cart, ordering, and payment have not been implemented yet.
+The repository is currently in its foundation stage. Runtime infrastructure, environment profiles, Testcontainers support, CI/CD workflows, deployment packaging, and an initial deny-by-default web security boundary exist. Business capabilities such as authentication, catalog, inventory, cart, ordering, and payment have not been implemented yet.
 
 ## Technology stack
 
@@ -37,7 +37,7 @@ The repository is currently in its foundation stage. Runtime infrastructure, env
 └── pom.xml                  Maven dependencies and build plugins
 ```
 
-The production source currently contains the application entry point and shared configuration only. Future business code should be grouped by feature rather than by technical type:
+The production source currently contains the application entry point, shared configuration and the beginning of the authentication module's security configuration. Future business code should continue to be grouped by feature rather than by technical type:
 
 ```text
 online.springshop.api
@@ -47,12 +47,21 @@ online.springshop.api
 │   │   ├── application
 │   │   ├── domain
 │   │   ├── infrastructure
+│   │   │   └─ security
+│   │   │      └─ configuration
+│   │   │         └─ SpringSecurityConfiguration
 │   │   └── interfaces
 │   └── ...
 └── shared
 ```
 
 Each feature owns its web contracts, use cases, domain model, persistence adapters, and messaging adapters. Cross-feature dependencies should go through explicit application contracts or events. Shared code should remain small and contain concepts that genuinely apply to multiple modules.
+
+## Current security boundary
+
+`SpringSecurityConfiguration` defines the first HTTP security filter chain. It disables CSRF, uses stateless session management, and permits the Swagger UI, OpenAPI document, and All Actuator endpoints (`/docs/**`, `/swagger-ui/**`, `/v3/api-docs/**`, and `/actuator/**`). Every other request is denied by default. No authentication mechanism has been connected yet.
+
+The API documentation remains disabled by default and is enabled by the development profile. Health, liveness, and readiness probes are publicly accessible so container and load-balancer checks can run without credentials; the production profile limits Actuator exposure to health endpoints only.
 
 ## Runtime dependencies
 
@@ -157,8 +166,8 @@ Target deployment behavior is:
 
 1. Add the first Flyway migration and application context smoke test.
 2. Implement the first vertical business slice and establish module boundaries.
-3. Add explicit Spring Security configuration and API error handling.
-4. Add authentication, authorization, and token lifecycle tests.
+3. Connect authentication to the deny-by-default security policy and provide JSON security entry-point responses.
+4. Implement authentication and authorization, and add security and token lifecycle tests.
 5. Implement the transactional outbox when asynchronous events first become necessary.
 6. Make release deployment pass the immutable release tag or digest to Compose and verify readiness.
 7. Add dependency scanning, container scanning, SBOM generation, and structured production logging.
