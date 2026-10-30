@@ -37,7 +37,7 @@ The repository is currently in its foundation stage. Runtime infrastructure, env
 └── pom.xml                  Maven dependencies and build plugins
 ```
 
-The production source currently contains the application entry point, shared configuration, API-exception abstractions and the beginning of the authentication module's security configuration. Future business code should continue to be grouped by feature rather than by technical type:
+The production source currently contains the application entry point, shared configuration, API-exception abstractions, shared action-result and the beginning of the authentication module's security configuration. Future business code should continue to be grouped by feature rather than by technical type:
 
 ```text
 online.springshop.api
@@ -56,9 +56,16 @@ online.springshop.api
     ├── exception
     │   ├── ExceptionDetails
     │   └── GlobalExceptionHandler
+    └── result
+        ├── Result
+        └── ResultError
 ```
 
 Each feature owns its web contracts, use cases, domain model, persistence adapters, and messaging adapters. Cross-feature dependencies should go through explicit application contracts or events. Shared code should remain small and contain concepts that genuinely apply to multiple modules.
+
+### Shared action results
+
+`shared.result` provides a framework-independent result contract for application actions. `Result<T, V>` represents either a successful value of type `T` or a non-null `ResultError<V>`. Successful values must be non-null; actions that produce no value use the no-argument `Result.success()` factory and receive a `Result<Void, V>`. The error contains a human-readable message and a stable code whose type must be an enum. Callers create failed outcomes through `Result.failure(error)` and can distinguish outcomes with `isSuccess()` or `isFailure()`.
 
 ### API exception responses
 
