@@ -37,7 +37,7 @@ The repository is currently in its foundation stage. Runtime infrastructure, env
 └── pom.xml                  Maven dependencies and build plugins
 ```
 
-The production source currently contains the application entry point, shared configuration and the beginning of the authentication module's security configuration. Future business code should continue to be grouped by feature rather than by technical type:
+The production source currently contains the application entry point, shared configuration, API-exception abstractions and the beginning of the authentication module's security configuration. Future business code should continue to be grouped by feature rather than by technical type:
 
 ```text
 online.springshop.api
@@ -53,9 +53,20 @@ online.springshop.api
 │   │   └── interfaces
 │   └── ...
 └── shared
+    ├── exception
+    │   ├── ExceptionDetails
+    │   └── GlobalExceptionHandler
 ```
 
 Each feature owns its web contracts, use cases, domain model, persistence adapters, and messaging adapters. Cross-feature dependencies should go through explicit application contracts or events. Shared code should remain small and contain concepts that genuinely apply to multiple modules.
+
+### API exception responses
+
+`shared.exception` provides the common JSON error contract for exceptions raised while Spring MVC processes a request. `GlobalExceptionHandler` maps each supported exception through a dedicated handler returning `ResponseEntity<ExceptionDetails>`. It covers request-body and parameter errors, validation failures, missing resources, unsupported methods or media types, database integrity conflicts, bad credentials and unexpected exceptions.
+
+`ExceptionDetails` contains a client-safe title and message, the numeric HTTP status, and the request URI as `instance`. Its immutable `properties` map supports exception-specific details; entries are serialized as top-level JSON fields. Validation handlers use this mechanism to expose an `errors` object while the generic server-error response does not expose the original exception message or type.
+
+Authentication and authorization failures raised by the Spring Security filter chain occur before controller advice and remain the responsibility of configured security entry points and access-denied handlers.
 
 ## Current security boundary
 
