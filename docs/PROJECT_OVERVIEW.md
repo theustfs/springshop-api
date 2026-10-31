@@ -4,7 +4,7 @@
 
 Springshop API is a portfolio e-commerce backend built with Spring Boot. The goal is to demonstrate a production-minded modular monolith: clear business boundaries, transactional consistency, secure APIs, asynchronous integration, automated tests, and a repeatable container deployment.
 
-The repository is currently in its foundation stage. Runtime infrastructure, environment profiles, Testcontainers support, CI/CD workflows, deployment packaging, and an initial deny-by-default web security boundary exist. Business capabilities such as authentication, catalog, inventory, cart, ordering, and payment have not been implemented yet.
+The repository is currently in its foundation stage. Runtime infrastructure, environment profiles, Testcontainers support, CI/CD workflows, deployment packaging, an initial deny-by-default web security boundary, and the first authentication domain value objects exist. Complete business workflows for authentication, catalog, inventory, cart, ordering, and payment have not been implemented yet.
 
 ## Technology stack
 
@@ -37,7 +37,7 @@ The repository is currently in its foundation stage. Runtime infrastructure, env
 └── pom.xml                  Maven dependencies and build plugins
 ```
 
-The production source currently contains the application entry point, shared configuration, API-exception abstractions, shared action-result and the beginning of the authentication module's security configuration. Future business code should continue to be grouped by feature rather than by technical type:
+The production source currently contains the application entry point, shared configuration, API-exception abstractions, shared action results, authentication value objects, and the beginning of the authentication module's security configuration. Future business code should continue to be grouped by feature rather than by technical type:
 
 ```text
 online.springshop.api
@@ -46,6 +46,10 @@ online.springshop.api
 │   ├── auth
 │   │   ├── application
 │   │   ├── domain
+│   │   │   └── user
+│   │   │       ├── exception
+│   │   │       ├── policy
+│   │   │       └── valueobject
 │   │   ├── infrastructure
 │   │   │   └─ security
 │   │   │      └─ configuration
@@ -63,6 +67,12 @@ online.springshop.api
 
 Each feature owns its web contracts, use cases, domain model, persistence adapters, and messaging adapters. Cross-feature dependencies should go through explicit application contracts or events. Shared code should remain small and contain concepts that genuinely apply to multiple modules.
 
+### Authentication domain foundations
+
+The authentication module currently defines value objects for usernames, email addresses, raw passwords, and encoded passwords. `Username`, `Email`, and `Password` validate untrusted values through their `of()` factories. Their `restore()` factories bypass normalization and validation and are reserved for trusted, previously validated data such as persisted values. `EncodedPassword` only wraps a value produced by an external password encoder; it does not encode or hash a password itself.
+
+Username, email, and password rules are centralized in policy classes. Validation failures expose a human-readable exception message and a stable error enum so callers can react without parsing message text. Plain unit tests cover validation, normalization where applicable, trusted restoration, equality, and hash-code behavior. Length and sequence boundary fixtures derive their values from the policy constants so policy changes do not require unrelated hard-coded test updates.
+
 ### Shared action results
 
 `shared.result` provides a framework-independent result contract for application actions. `Result<T, V>` represents either a successful value of type `T` or a non-null `ResultError<V>`. Successful values must be non-null; actions that produce no value use the no-argument `Result.success()` factory and receive a `Result<Void, V>`. The error contains a human-readable message and a stable code whose type must be an enum. Callers create failed outcomes through `Result.failure(error)` and can distinguish outcomes with `isSuccess()` or `isFailure()`.
@@ -77,7 +87,7 @@ Authentication and authorization failures raised by the Spring Security filter c
 
 ## Current security boundary
 
-`SpringSecurityConfiguration` defines the first HTTP security filter chain. It disables CSRF, uses stateless session management, and permits the Swagger UI, OpenAPI document, and All Actuator endpoints (`/docs/**`, `/swagger-ui/**`, `/v3/api-docs/**`, and `/actuator/**`). Every other request is denied by default. No authentication mechanism has been connected yet.
+`SpringSecurityConfiguration` defines the first HTTP security filter chain. It disables CSRF, uses stateless session management, and permits the Swagger UI, OpenAPI document, and all Actuator endpoints (`/docs/**`, `/swagger-ui/**`, `/v3/api-docs/**`, and `/actuator/**`). Every other request is denied by default. No authentication mechanism has been connected yet.
 
 The API documentation remains disabled by default and is enabled by the development profile. Health, liveness, and readiness probes are publicly accessible so container and load-balancer checks can run without credentials; the production profile limits Actuator exposure to health endpoints only.
 
@@ -156,7 +166,7 @@ Use the smallest test scope that proves the behavior:
 3. JPA or Redis slice tests for persistence adapters.
 4. Full integration tests for cross-layer workflows and infrastructure boundaries.
 
-The repository provides reusable test bases under `../src/test/java/online/springshop/api/testsupport`. The scaffolding exists, but feature tests have not yet been added.
+The repository provides reusable test bases under `src/test/java/online/springshop/api/testsupport`. Plain unit tests currently cover shared result contracts and the authentication value objects. Persistence and cross-layer feature tests will be added when those adapters and workflows exist.
 
 Run the complete verification suite with:
 
@@ -183,7 +193,7 @@ Target deployment behavior is:
 ## Current gaps and near-term roadmap
 
 1. Add the first Flyway migration and application context smoke test.
-2. Implement the first vertical business slice and establish module boundaries.
+2. Continue the authentication vertical slice beyond its domain value objects and establish its application and interface boundaries.
 3. Connect authentication to the deny-by-default security policy and provide JSON security entry-point responses.
 4. Implement authentication and authorization, and add security and token lifecycle tests.
 5. Implement the transactional outbox when asynchronous events first become necessary.
