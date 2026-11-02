@@ -3,13 +3,13 @@ package online.springshop.api.shared.exception;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.ConstraintViolationException;
+import online.springshop.api.modules.auth.domain.account.exception.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.validation.FieldError;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -28,6 +28,37 @@ import java.util.Map;
 public class GlobalExceptionHandler
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+
+    @ExceptionHandler(InvalidEmailException.class)
+    public ResponseEntity<ExceptionDetails> handleInvalidEmailException (
+        InvalidEmailException exception,
+        HttpServletRequest request
+    )
+    {
+        return ExceptionDetails.builder()
+            .title("Invalid email")
+            .message(exception.getMessage())
+            .status(HttpServletResponse.SC_BAD_REQUEST)
+            .instance(URI.create(request.getRequestURI()))
+            .build()
+            .toResponseEntity();
+    }
+
+    @ExceptionHandler(InvalidPasswordException.class)
+    public ResponseEntity<ExceptionDetails> handleInvalidPasswordException (
+        InvalidPasswordException exception,
+        HttpServletRequest request
+    )
+    {
+        return ExceptionDetails.builder()
+            .title("Invalid password")
+            .message(exception.getMessage())
+            .status(HttpServletResponse.SC_BAD_REQUEST)
+            .instance(URI.create(request.getRequestURI()))
+            .build()
+            .toResponseEntity();
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ExceptionDetails> handleMethodArgumentNotValidException (
