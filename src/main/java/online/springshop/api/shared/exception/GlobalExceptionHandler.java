@@ -29,6 +29,35 @@ public class GlobalExceptionHandler
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    @ExceptionHandler(UserVerificationFailedException.class)
+    public ResponseEntity<ExceptionDetails> handleUserVerificationFailedException (
+        UserVerificationFailedException exception,
+        HttpServletRequest request
+    )
+    {
+        return ExceptionDetails.builder()
+            .title("User verification failed")
+            .message(exception.getMessage())
+            .status(HttpServletResponse.SC_CONFLICT)
+            .instance(URI.create(request.getRequestURI()))
+            .build()
+            .toResponseEntity();
+    }
+
+    @ExceptionHandler(UserUpdateFailedException.class)
+    public ResponseEntity<ExceptionDetails> handleUserUpdateFailedException (
+        UserUpdateFailedException exception,
+        HttpServletRequest request
+    )
+    {
+        return ExceptionDetails.builder()
+            .title("User update failed")
+            .message(exception.getMessage())
+            .status(HttpServletResponse.SC_CONFLICT)
+            .instance(URI.create(request.getRequestURI()))
+            .build()
+            .toResponseEntity();
+    }
 
     @ExceptionHandler(InvalidEmailException.class)
     public ResponseEntity<ExceptionDetails> handleInvalidEmailException (

@@ -4,7 +4,7 @@
 
 Springshop API is a portfolio e-commerce backend built with Spring Boot. The goal is to demonstrate a production-minded modular monolith: clear business boundaries, transactional consistency, secure APIs, asynchronous integration, automated tests, and a repeatable container deployment.
 
-The repository is currently in its foundation stage. Runtime infrastructure, environment profiles, Testcontainers support, CI/CD workflows, deployment packaging, an initial deny-by-default web security boundary, and the first authentication domain value objects exist. Complete business workflows for authentication, catalog, inventory, cart, ordering, and payment have not been implemented yet.
+The repository is currently in its foundation stage. Runtime infrastructure, environment profiles, Testcontainers support, CI/CD workflows, deployment packaging, an initial deny-by-default web security boundary, and the authentication account domain model exist. Complete business workflows for authentication, catalog, inventory, cart, ordering, and payment have not been implemented yet.
 
 ## Technology stack
 
@@ -37,7 +37,7 @@ The repository is currently in its foundation stage. Runtime infrastructure, env
 └── pom.xml                  Maven dependencies and build plugins
 ```
 
-The production source currently contains the application entry point, shared configuration, API-exception abstractions, shared action results, authentication value objects, and the beginning of the authentication module's security configuration. Future business code should continue to be grouped by feature rather than by technical type:
+The production source currently contains the application entry point, shared configuration, API-exception abstractions, shared action results, the authentication account domain model, and the beginning of the authentication module's security configuration. Future business code should continue to be grouped by feature rather than by technical type:
 
 ```text
 online.springshop.api
@@ -47,6 +47,8 @@ online.springshop.api
 │   │   ├── application
 │   │   ├── domain
 │   │   │   └── account
+│   │   │       ├── Account
+│   │   │       ├── Role
 │   │   │       ├── exception
 │   │   │       ├── policy
 │   │   │       └── valueobject
@@ -69,9 +71,11 @@ Each feature owns its web contracts, use cases, domain model, persistence adapte
 
 ### Authentication domain foundations
 
-The authentication module currently defines value objects for email addresses, raw passwords, and encoded passwords. `Email`, and `Password` validate untrusted values through their `of()` factories. Their `restore()` factories bypass normalization and validation and are reserved for trusted, previously validated data such as persisted values. `EncodedPassword` only wraps a value produced by an external password encoder; it does not encode or hash a password itself.
+The authentication module currently defines an `Account` aggregate for registered authentication identities and value objects for email addresses, raw passwords, and encoded passwords. A new account receives a time-based UUID, the `USER` role, its creation time from an injected `Clock`, and an unverified state. Trusted persisted accounts can be restored with their role, verification state, update time, and optional deletion-scheduling time, subject to timestamp and state invariants. Account identity and hash code are based on the account ID.
 
-email, and password rules are centralized in policy classes. Validation failures expose a human-readable exception message and a stable error enum so callers can react without parsing message text. Plain unit tests cover validation, normalization where applicable, trusted restoration, equality, and hash-code behavior. Length and sequence boundary fixtures derive their values from the policy constants so policy changes do not require unrelated hard-coded test updates.
+The aggregate supports email verification, deletion scheduling and cancellation, and updates to the email, encoded password, and authorization role. These mutations use an injected `Clock`, reject time moving backwards, and become no-ops when the requested state is already present. Verification and ordinary updates are rejected while deletion is scheduled. Challenge validation, reauthentication, authorization, password encoding, and persistence remain responsibilities of future application and infrastructure layers rather than the aggregate.
+
+`Role` currently provides `USER`, `PRODUCT_MANAGER`, and `ADMIN` authorities. `Email` and `Password` validate untrusted values through their `of()` factories. Their `restore()` factories bypass normalization and validation and are reserved for trusted, previously validated data such as persisted values. `EncodedPassword` only wraps a value produced by an external password encoder; it does not encode or hash a password itself. Email and password rules are centralized in policy classes. Validation failures expose a human-readable exception message and a stable error enum so callers can react without parsing message text.
 
 ### Shared action results
 
@@ -79,7 +83,7 @@ email, and password rules are centralized in policy classes. Validation failures
 
 ### API exception responses
 
-`shared.exception` provides the common JSON error contract for exceptions raised while Spring MVC processes a request. `GlobalExceptionHandler` maps each supported exception through a dedicated handler returning `ResponseEntity<ExceptionDetails>`. It covers request-body and parameter errors, validation failures, missing resources, unsupported methods or media types, database integrity conflicts, bad credentials and unexpected exceptions.
+`shared.exception` provides the common JSON error contract for exceptions raised while Spring MVC processes a request. `GlobalExceptionHandler` maps each supported exception through a dedicated handler returning `ResponseEntity<ExceptionDetails>`. It covers account verification and update failures, request-body and parameter errors, validation failures, missing resources, unsupported methods or media types, database integrity conflicts, bad credentials and unexpected exceptions.
 
 `ExceptionDetails` contains a client-safe title and message, the numeric HTTP status, and the request URI as `instance`. Its immutable `properties` map supports exception-specific details; entries are serialized as top-level JSON fields. Validation handlers use this mechanism to expose an `errors` object while the generic server-error response does not expose the original exception message or type.
 
@@ -166,7 +170,7 @@ Use the smallest test scope that proves the behavior:
 3. JPA or Redis slice tests for persistence adapters.
 4. Full integration tests for cross-layer workflows and infrastructure boundaries.
 
-The repository provides reusable test bases under `src/test/java/online/springshop/api/testsupport`. Plain unit tests currently cover shared result contracts and the authentication value objects. Persistence and cross-layer feature tests will be added when those adapters and workflows exist.
+The repository provides reusable test bases under `src/test/java/online/springshop/api/testsupport`. Plain unit tests currently cover shared result contracts, authentication value objects, and account creation, restoration, lifecycle mutations, update restrictions, time invariants, and identity semantics. Persistence and cross-layer feature tests will be added when those adapters and workflows exist.
 
 Run the complete verification suite with:
 
@@ -193,7 +197,7 @@ Target deployment behavior is:
 ## Current gaps and near-term roadmap
 
 1. Add the first Flyway migration and application context smoke test.
-2. Continue the authentication vertical slice beyond its domain value objects and establish its application and interface boundaries.
+2. Continue the authentication vertical slice beyond the account domain model and establish its persistence, application, and interface boundaries.
 3. Connect authentication to the deny-by-default security policy and provide JSON security entry-point responses.
 4. Implement authentication and authorization, and add security and token lifecycle tests.
 5. Implement the transactional outbox when asynchronous events first become necessary.
