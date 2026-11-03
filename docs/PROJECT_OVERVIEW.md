@@ -37,7 +37,7 @@ The repository is currently in its foundation stage. Runtime infrastructure, env
 └── pom.xml                  Maven dependencies and build plugins
 ```
 
-The production source currently contains the application entry point, shared configuration, API-exception abstractions, shared action results, the authentication account domain model, and the beginning of the authentication module's security configuration. Future business code should continue to be grouped by feature rather than by technical type:
+The production source currently contains the application entry point, shared configuration, API-exception abstractions, shared action results, the authentication account domain and persistence layers, and the beginning of the authentication module's security configuration. Future business code should continue to be grouped by feature rather than by technical type:
 
 ```text
 online.springshop.api
@@ -53,6 +53,10 @@ online.springshop.api
 │   │   │       ├── policy
 │   │   │       └── valueobject
 │   │   ├── infrastructure
+│   │   │   ├─ persistence
+│   │   │   │  ├─ entity
+│   │   │   │  ├─ mapper
+│   │   │   │  └─ repository
 │   │   │   └─ security
 │   │   │      └─ configuration
 │   │   │         └─ SpringSecurityConfiguration
@@ -73,7 +77,11 @@ Each feature owns its web contracts, use cases, domain model, persistence adapte
 
 The authentication module currently defines an `Account` aggregate for registered authentication identities and value objects for email addresses, raw passwords, and encoded passwords. A new account receives a time-based UUID, the `USER` role, its creation time from an injected `Clock`, and an unverified state. Trusted persisted accounts can be restored with their role, verification state, update time, and optional deletion-scheduling time, subject to timestamp and state invariants. Account identity and hash code are based on the account ID.
 
-The aggregate supports email verification, deletion scheduling and cancellation, and updates to the email, encoded password, and authorization role. These mutations use an injected `Clock`, reject time moving backwards, and become no-ops when the requested state is already present. Verification and ordinary updates are rejected while deletion is scheduled. Challenge validation, reauthentication, authorization, password encoding, and persistence remain responsibilities of future application and infrastructure layers rather than the aggregate.
+The aggregate supports email verification, deletion scheduling and cancellation, and updates to the email, encoded password, and authorization role. These mutations use an injected `Clock`, reject time moving backwards, and become no-ops when the requested state is already present. Verification and ordinary updates are rejected while deletion is scheduled. Challenge validation, reauthentication, authorization, and password encoding remain responsibilities of future application services rather than the aggregate.
+
+The authentication persistence boundary consists of an application-facing `AccountRepository` port and a Spring Data JPA adapter. The adapter maps between the framework-independent aggregate and `AccountEntity`, supports lookup by ID or normalized email, and offers pessimistic write-locking variants for concurrent application workflows. Application services own transaction boundaries so acquired locks remain active for the complete use case.
+
+Flyway migration `V1__CREATE_ACCOUNTS_TABLE.sql` creates the `accounts` table, its unique email and role constraints, and partial indexes for account cleanup. Cleanup queries operate in bounded batches and use `FOR UPDATE SKIP LOCKED` so multiple workers can make progress without selecting the same rows. Thresholds are exclusive. Expired unverified accounts are deleted according to their creation time even when they also have a deletion schedule; unverified-account retention takes precedence over scheduled deletion.
 
 `Role` currently provides `USER`, `PRODUCT_MANAGER`, and `ADMIN` authorities. `Email` and `Password` validate untrusted values through their `of()` factories. Their `restore()` factories bypass normalization and validation and are reserved for trusted, previously validated data such as persisted values. `EncodedPassword` only wraps a value produced by an external password encoder; it does not encode or hash a password itself. Email and password rules are centralized in policy classes. Validation failures expose a human-readable exception message and a stable error enum so callers can react without parsing message text.
 
@@ -170,7 +178,7 @@ Use the smallest test scope that proves the behavior:
 3. JPA or Redis slice tests for persistence adapters.
 4. Full integration tests for cross-layer workflows and infrastructure boundaries.
 
-The repository provides reusable test bases under `src/test/java/online/springshop/api/testsupport`. Plain unit tests currently cover shared result contracts, authentication value objects, and account creation, restoration, lifecycle mutations, update restrictions, time invariants, and identity semantics. Persistence and cross-layer feature tests will be added when those adapters and workflows exist.
+The repository provides reusable test bases under `src/test/java/online/springshop/api/testsupport`. Plain unit tests currently cover shared result contracts, authentication value objects, and account creation, restoration, lifecycle mutations, update restrictions, time invariants, identity semantics, and domain-to-entity mapping. PostgreSQL-backed JPA tests cover account persistence, lookup, existence checks, pessimistic locking, bounded cleanup, lock retention, and skip-locked cleanup behavior. Cross-layer feature tests will be added when complete application workflows exist.
 
 Run the complete verification suite with:
 
@@ -196,8 +204,8 @@ Target deployment behavior is:
 
 ## Current gaps and near-term roadmap
 
-1. Add the first Flyway migration and application context smoke test.
-2. Continue the authentication vertical slice beyond the account domain model and establish its persistence, application, and interface boundaries.
+1. Add an application context smoke test.
+2. Continue the authentication vertical slice beyond the account domain and persistence layers by establishing its application workflows and interface boundaries.
 3. Connect authentication to the deny-by-default security policy and provide JSON security entry-point responses.
 4. Implement authentication and authorization, and add security and token lifecycle tests.
 5. Implement the transactional outbox when asynchronous events first become necessary.
