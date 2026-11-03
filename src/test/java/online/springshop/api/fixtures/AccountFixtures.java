@@ -24,13 +24,13 @@ public class AccountFixtures
     private static final Role NEW_ROLE = Role.ADMIN;
 
     @FunctionalInterface
-    public interface UserUpdater<T>
+    public interface AccountUpdater<T>
     {
         void update (Account account, T value, Clock clock);
     }
 
     public record UpdateCase<T> (
-        UserUpdater<T> updater,
+        AccountUpdater<T> updater,
         Function<Account, T> field,
         T oldValue,
         T newValue
@@ -57,7 +57,7 @@ public class AccountFixtures
         }
     }
 
-    public static Account createUser (
+    public static Account createAccount (
         Instant createdAt,
         Instant updatedAt,
         Instant deletionScheduledAt,

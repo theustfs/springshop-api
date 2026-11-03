@@ -29,14 +29,14 @@ public class GlobalExceptionHandler
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    @ExceptionHandler(UserVerificationFailedException.class)
+    @ExceptionHandler(AccountVerificationFailedException.class)
     public ResponseEntity<ExceptionDetails> handleUserVerificationFailedException (
-        UserVerificationFailedException exception,
+        AccountVerificationFailedException exception,
         HttpServletRequest request
     )
     {
         return ExceptionDetails.builder()
-            .title("User verification failed")
+            .title("Account verification failed")
             .message(exception.getMessage())
             .status(HttpServletResponse.SC_CONFLICT)
             .instance(URI.create(request.getRequestURI()))
@@ -44,14 +44,14 @@ public class GlobalExceptionHandler
             .toResponseEntity();
     }
 
-    @ExceptionHandler(UserUpdateFailedException.class)
+    @ExceptionHandler(AccountUpdateFailedException.class)
     public ResponseEntity<ExceptionDetails> handleUserUpdateFailedException (
-        UserUpdateFailedException exception,
+        AccountUpdateFailedException exception,
         HttpServletRequest request
     )
     {
         return ExceptionDetails.builder()
-            .title("User update failed")
+            .title("Account update failed")
             .message(exception.getMessage())
             .status(HttpServletResponse.SC_CONFLICT)
             .instance(URI.create(request.getRequestURI()))

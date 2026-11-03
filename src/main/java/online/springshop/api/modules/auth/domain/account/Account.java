@@ -2,8 +2,8 @@ package online.springshop.api.modules.auth.domain.account;
 
 import com.fasterxml.uuid.Generators;
 import lombok.Getter;
-import online.springshop.api.modules.auth.domain.account.exception.UserUpdateFailedException;
-import online.springshop.api.modules.auth.domain.account.exception.UserVerificationFailedException;
+import online.springshop.api.modules.auth.domain.account.exception.AccountUpdateFailedException;
+import online.springshop.api.modules.auth.domain.account.exception.AccountVerificationFailedException;
 import online.springshop.api.modules.auth.domain.account.valueobject.Email;
 import online.springshop.api.modules.auth.domain.account.valueobject.EncodedPassword;
 
@@ -15,10 +15,10 @@ import java.util.UUID;
 /**
  * Aggregate root representing a registered authentication identity.
  *
- * <p>The aggregate owns the user's identity, encoded credentials, authorization
- * role, email-verification state, and lifecycle timestamps. New users receive
+ * <p>The aggregate owns the account's identity, encoded credentials, authorization
+ * role, email-verification state, and lifecycle timestamps. New accounts receive
  * {@link Role#USER} and begin unverified. A role describes authorization and is
- * independent of whether the user's email has been verified.</p>
+ * independent of whether the account's email has been verified.</p>
  *
  * <p>Authorization, reauthentication, and confirmation challenges are
  * application-service responsibilities. In particular, callers must complete
@@ -68,12 +68,12 @@ public final class Account
     }
 
     /**
-     * Creates a new unverified user with the default {@link Role#USER} role.
+     * Creates a new unverified account with the default {@link Role#USER} role.
      *
      * @param email the validated email address
      * @param encodedPassword the externally encoded password
      * @param clock the source of the creation time
-     * @return a newly registered user
+     * @return a newly registered account
      * @throws NullPointerException when any argument is {@code null}
      */
     public static Account of (
@@ -103,13 +103,13 @@ public final class Account
     }
 
     /**
-     * Restores a user from trusted persisted state.
+     * Restores an account from trusted persisted state.
      *
      * <p>The update time must not precede the creation time. When deletion is
-     * scheduled, its timestamp must equal the update time. A verified user must
+     * scheduled, its timestamp must equal the update time. A verified account must
      * have an update time recording a mutation after registration.</p>
      *
-     * @param id the stable user identifier
+     * @param id the stable account identifier
      * @param email the restored email address
      * @param encodedPassword the restored encoded password
      * @param role the restored authorization role
@@ -117,7 +117,7 @@ public final class Account
      * @param updatedAt the most recent mutation time, or {@code null}
      * @param deletionScheduledAt the deletion-scheduling time, or {@code null}
      * @param verified whether the current email is verified
-     * @return the restored user
+     * @return the restored account
      * @throws NullPointerException when required state is {@code null}
      * @throws IllegalArgumentException when timestamp invariants are violated
      */
@@ -145,7 +145,7 @@ public final class Account
             throw new IllegalArgumentException("Updated at must not be before created at");
 
         if (verified && updatedAt == null)
-            throw new IllegalArgumentException("Updated at must not be null when user is verified");
+            throw new IllegalArgumentException("Updated at must not be null when account is verified");
 
         return new Account(
             id,
@@ -160,14 +160,14 @@ public final class Account
     }
 
     /**
-     * Marks the user as verified.
+     * Marks the account as verified.
      *
      * <p>The operation is idempotent. The caller is responsible for validating
      * and consuming the corresponding email-verification challenge first.</p>
      *
      * @param clock the source of the verification time
      * @throws NullPointerException when {@code clock} is {@code null}
-     * @throws UserVerificationFailedException when deletion is scheduled
+     * @throws AccountVerificationFailedException when deletion is scheduled
      * @throws IllegalArgumentException when the verification time precedes an
      * existing aggregate timestamp
      */
@@ -245,7 +245,7 @@ public final class Account
      * @param newEmail the validated and challenge-confirmed email address
      * @param clock the source of the update time
      * @throws NullPointerException when an argument is {@code null}
-     * @throws UserUpdateFailedException when deletion is scheduled
+     * @throws AccountUpdateFailedException when deletion is scheduled
      * @throws IllegalArgumentException when the update time precedes an
      * existing aggregate timestamp
      */
@@ -261,7 +261,7 @@ public final class Account
             throw new NullPointerException("New email must not be null");
 
         if (deletionScheduledAt != null)
-            throw new UserUpdateFailedException("User is scheduled for deletion, cannot be updated");
+            throw new AccountUpdateFailedException("Account is scheduled for deletion, cannot be updated");
 
         if (email.equals(newEmail))
             return;
@@ -280,7 +280,7 @@ public final class Account
      * @param newEncodedPassword the externally encoded replacement password
      * @param clock the source of the update time
      * @throws NullPointerException when an argument is {@code null}
-     * @throws UserUpdateFailedException when deletion is scheduled
+     * @throws AccountUpdateFailedException when deletion is scheduled
      * @throws IllegalArgumentException when the update time precedes an
      * existing aggregate timestamp
      */
@@ -296,7 +296,7 @@ public final class Account
             throw new NullPointerException("New encoded password must not be null");
 
         if (deletionScheduledAt != null)
-            throw new UserUpdateFailedException("User is scheduled for deletion, cannot be updated");
+            throw new AccountUpdateFailedException("Account is scheduled for deletion, cannot be updated");
 
         if (encodedPassword.equals(newEncodedPassword))
             return;
@@ -316,7 +316,7 @@ public final class Account
      * @param newRole the replacement authorization role
      * @param clock the source of the update time
      * @throws NullPointerException when an argument is {@code null}
-     * @throws UserUpdateFailedException when deletion is scheduled
+     * @throws AccountUpdateFailedException when deletion is scheduled
      * @throws IllegalArgumentException when the update time precedes an
      * existing aggregate timestamp
      */
@@ -332,7 +332,7 @@ public final class Account
             throw new NullPointerException("New role must not be null");
 
         if (deletionScheduledAt != null)
-            throw new UserUpdateFailedException("User is scheduled for deletion, cannot be updated");
+            throw new AccountUpdateFailedException("Account is scheduled for deletion, cannot be updated");
 
         if (role.equals(newRole))
             return;

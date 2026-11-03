@@ -1,8 +1,8 @@
 package online.springshop.api.modules.auth.domain.account;
 
 import online.springshop.api.fixtures.AccountFixtures;
-import online.springshop.api.modules.auth.domain.account.exception.UserUpdateFailedException;
-import online.springshop.api.modules.auth.domain.account.exception.UserVerificationFailedException;
+import online.springshop.api.modules.auth.domain.account.exception.AccountUpdateFailedException;
+import online.springshop.api.modules.auth.domain.account.exception.AccountVerificationFailedException;
 import online.springshop.api.modules.auth.domain.account.valueobject.Email;
 import online.springshop.api.modules.auth.domain.account.valueobject.EncodedPassword;
 import org.junit.jupiter.api.DisplayName;
@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@DisplayName("User tests")
+@DisplayName("Account tests")
 class AccountTest
 {
     private static final String FIXTURES = "online.springshop.api.fixtures.AccountFixtures";
@@ -33,7 +33,7 @@ class AccountTest
     private static final Instant UPDATED_AT = Instant.parse("2026-01-01T10:05:00Z");
     private static final Instant UPDATE_TIME = Instant.parse("2026-01-01T10:10:00Z");
 
-    private static final UUID USER_ID = UUID.fromString("019b76da-a000-7000-8000-000000000001");
+    private static final UUID ACCOUNT_ID = UUID.fromString("019b76da-a000-7000-8000-000000000001");
     private static final Email EMAIL = Email.restore("test@example.com");
     private static final EncodedPassword ENCODED_PASSWORD = EncodedPassword.from("encoded_password");
 
@@ -42,8 +42,8 @@ class AccountTest
     class CreationTests
     {
         @Test
-        @DisplayName("Should create an unverified user with the default role")
-        void shouldCreateUser ()
+        @DisplayName("Should create an unverified account with the default role")
+        void shouldCreateAccount ()
         {
             Clock clock = Clock.fixed(CREATED_AT, ZoneOffset.UTC);
 
@@ -100,12 +100,12 @@ class AccountTest
     class RestorationTests
     {
         @Test
-        @DisplayName("Should restore user")
-        void shouldRestoreUser ()
+        @DisplayName("Should restore account")
+        void shouldRestoreAccount ()
         {
-            Account account = restore(USER_ID, UPDATED_AT, null, true);
+            Account account = restore(ACCOUNT_ID, UPDATED_AT, null, true);
 
-            assertEquals(USER_ID, account.getId());
+            assertEquals(ACCOUNT_ID, account.getId());
             assertEquals(EMAIL, account.getEmail());
             assertEquals(ENCODED_PASSWORD, account.getEncodedPassword());
             assertEquals(Role.USER, account.getRole());
@@ -120,7 +120,7 @@ class AccountTest
         void shouldRestoreEqualTimestamps ()
         {
             Account account = Account.restore(
-                USER_ID,
+                ACCOUNT_ID,
                 EMAIL,
                 ENCODED_PASSWORD,
                 Role.USER,
@@ -140,7 +140,7 @@ class AccountTest
         {
             assertThrows(
                 IllegalArgumentException.class,
-                () -> restore(USER_ID, CREATED_AT.minusSeconds(1), CREATED_AT.minusSeconds(1), false)
+                () -> restore(ACCOUNT_ID, CREATED_AT.minusSeconds(1), CREATED_AT.minusSeconds(1), true)
             );
         }
 
@@ -150,17 +150,17 @@ class AccountTest
         {
             assertThrows(
                 IllegalArgumentException.class,
-                () -> restore(USER_ID, null, UPDATED_AT, false)
+                () -> restore(ACCOUNT_ID, null, UPDATED_AT, true)
             );
         }
 
         @Test
-        @DisplayName("Should fail when deletion schedule differs from update time")
-        void shouldFailWhenDeletionScheduleDiffersFromUpdateTime ()
+        @DisplayName("Should fail when deletion schedule differs from updated at")
+        void shouldFailWhenDeletionScheduleDiffersFromUpdatedAt ()
         {
             assertThrows(
                 IllegalArgumentException.class,
-                () -> restore(USER_ID, UPDATED_AT, UPDATE_TIME, false)
+                () -> restore(ACCOUNT_ID, UPDATED_AT, UPDATE_TIME, true)
             );
         }
 
@@ -170,17 +170,17 @@ class AccountTest
         {
             assertThrows(
                 IllegalArgumentException.class,
-                () -> restore(USER_ID, CREATED_AT.minusSeconds(1), null, false)
+                () -> restore(ACCOUNT_ID, CREATED_AT.minusSeconds(1), null, false)
             );
         }
 
         @Test
-        @DisplayName("Should fail when verified user has no update time")
-        void shouldFailWhenVerifiedUserHasNoUpdateTime ()
+        @DisplayName("Should fail when verified account has no update time")
+        void shouldFailWhenVerifiedAccountHasNoUpdateTime ()
         {
             assertThrows(
                 IllegalArgumentException.class,
-                () -> restore(USER_ID, null, null, true)
+                () -> restore(ACCOUNT_ID, null, null, true)
             );
         }
 
@@ -194,19 +194,19 @@ class AccountTest
             );
             assertThrows(
                 NullPointerException.class,
-                () -> Account.restore(USER_ID,null, ENCODED_PASSWORD, Role.USER, CREATED_AT, null, null, false)
+                () -> Account.restore(ACCOUNT_ID,null, ENCODED_PASSWORD, Role.USER, CREATED_AT, null, null, false)
             );
             assertThrows(
                 NullPointerException.class,
-                () -> Account.restore(USER_ID, EMAIL, null, Role.USER, CREATED_AT, null, null, false)
+                () -> Account.restore(ACCOUNT_ID, EMAIL, null, Role.USER, CREATED_AT, null, null, false)
             );
             assertThrows(
                 NullPointerException.class,
-                () -> Account.restore(USER_ID, EMAIL, ENCODED_PASSWORD, null, CREATED_AT, null, null, false)
+                () -> Account.restore(ACCOUNT_ID, EMAIL, ENCODED_PASSWORD, null, CREATED_AT, null, null, false)
             );
             assertThrows(
                 NullPointerException.class,
-                () -> Account.restore(USER_ID, EMAIL, ENCODED_PASSWORD, Role.USER, null, null, null, false)
+                () -> Account.restore(ACCOUNT_ID, EMAIL, ENCODED_PASSWORD, Role.USER, null, null, null, false)
             );
         }
 
@@ -217,11 +217,11 @@ class AccountTest
     class VerificationTests
     {
         @Test
-        @DisplayName("Should verify user")
-        void shouldVerifyUser ()
+        @DisplayName("Should verify account")
+        void shouldVerifyAccount ()
         {
             Clock clock = Clock.fixed(UPDATE_TIME, ZoneOffset.UTC);
-            Account account = restore(USER_ID, UPDATED_AT, null, false);
+            Account account = restore(ACCOUNT_ID, UPDATED_AT, null, false);
 
             account.verify(clock);
 
@@ -234,7 +234,7 @@ class AccountTest
         void shouldDoNothingWhenAlreadyVerified ()
         {
             Clock clock = Clock.fixed(UPDATE_TIME, ZoneOffset.UTC);
-            Account account = restore(USER_ID, UPDATED_AT, null, true);
+            Account account = restore(ACCOUNT_ID, UPDATED_AT, null, true);
 
             account.verify(clock);
 
@@ -246,7 +246,7 @@ class AccountTest
         @DisplayName("Should fail when clock is null")
         void shouldFailWhenClockIsNull ()
         {
-            Account account = restore(USER_ID, UPDATED_AT, null, false);
+            Account account = restore(ACCOUNT_ID, UPDATED_AT, null, false);
 
             assertThrows(NullPointerException.class, () -> account.verify(null));
 
@@ -272,7 +272,7 @@ class AccountTest
         void shouldFailWhenVerificationTimeIsBeforeCreation ()
         {
             Clock clock = Clock.fixed(CREATED_AT.minusSeconds(1), ZoneOffset.UTC);
-            Account account = restore(USER_ID, UPDATED_AT, null, false);
+            Account account = restore(ACCOUNT_ID, UPDATED_AT, null, false);
 
             assertThrows(IllegalArgumentException.class, () -> account.verify(clock));
 
@@ -285,7 +285,7 @@ class AccountTest
         void shouldFailWhenVerificationTimeIsBeforeUpdateTime ()
         {
             Clock clock = Clock.fixed(UPDATED_AT.minusSeconds(1), ZoneOffset.UTC);
-            Account account = restore(USER_ID, UPDATED_AT, null, false);
+            Account account = restore(ACCOUNT_ID, UPDATED_AT, null, false);
 
             assertThrows(IllegalArgumentException.class, () -> account.verify(clock));
 
@@ -298,7 +298,7 @@ class AccountTest
         void shouldVerifyWhenVerificationTimeEqualsUpdateTime ()
         {
             Clock clock = Clock.fixed(UPDATED_AT, ZoneOffset.UTC);
-            Account account = restore(USER_ID, UPDATED_AT, null, false);
+            Account account = restore(ACCOUNT_ID, UPDATED_AT, null, false);
 
             account.verify(clock);
 
@@ -317,7 +317,7 @@ class AccountTest
         void shouldScheduleDeletion ()
         {
             Clock clock = Clock.fixed(UPDATE_TIME, ZoneOffset.UTC);
-            Account account = restore(USER_ID, UPDATED_AT, null, true);
+            Account account = restore(ACCOUNT_ID, UPDATED_AT, null, true);
 
             account.setDeletionSchedule(clock);
 
@@ -330,7 +330,7 @@ class AccountTest
         void shouldDoNothingWhenDeletionIsAlreadyScheduled ()
         {
             Clock clock = Clock.fixed(UPDATE_TIME, ZoneOffset.UTC);
-            Account account = restore(USER_ID, UPDATED_AT, UPDATED_AT, true);
+            Account account = restore(ACCOUNT_ID, UPDATED_AT, UPDATED_AT, true);
 
             account.setDeletionSchedule(clock);
 
@@ -342,7 +342,7 @@ class AccountTest
         @DisplayName("Should fail when clock is null")
         void shouldFailWhenClockIsNull ()
         {
-            Account account = restore(USER_ID, UPDATED_AT, null, true);
+            Account account = restore(ACCOUNT_ID, UPDATED_AT, null, true);
 
             assertThrows(NullPointerException.class, () -> account.setDeletionSchedule(null));
 
@@ -355,7 +355,7 @@ class AccountTest
         void shouldFailWhenScheduleTimeIsBeforeCreation ()
         {
             Clock clock = Clock.fixed(CREATED_AT.minusSeconds(1), ZoneOffset.UTC);
-            Account account = restore(USER_ID, UPDATED_AT, null, true);
+            Account account = restore(ACCOUNT_ID, UPDATED_AT, null, true);
 
             assertThrows(IllegalArgumentException.class, () -> account.setDeletionSchedule(clock));
 
@@ -368,7 +368,7 @@ class AccountTest
         void shouldFailWhenScheduleTimeIsBeforeUpdateTime ()
         {
             Clock clock = Clock.fixed(UPDATED_AT.minusSeconds(1), ZoneOffset.UTC);
-            Account account = restore(USER_ID, UPDATED_AT, null, true);
+            Account account = restore(ACCOUNT_ID, UPDATED_AT, null, true);
 
             assertThrows(IllegalArgumentException.class, () -> account.setDeletionSchedule(clock));
 
@@ -381,7 +381,7 @@ class AccountTest
         void shouldScheduleDeletionWhenScheduleTimeEqualsUpdateTime ()
         {
             Clock clock = Clock.fixed(UPDATED_AT, ZoneOffset.UTC);
-            Account account = restore(USER_ID, UPDATED_AT, null, true);
+            Account account = restore(ACCOUNT_ID, UPDATED_AT, null, true);
 
             account.setDeletionSchedule(clock);
 
@@ -400,7 +400,7 @@ class AccountTest
         void shouldRemoveDeletionSchedule ()
         {
             Clock clock = Clock.fixed(UPDATE_TIME, ZoneOffset.UTC);
-            Account account = restore(USER_ID, UPDATED_AT, UPDATED_AT, true);
+            Account account = restore(ACCOUNT_ID, UPDATED_AT, UPDATED_AT, true);
 
             account.removeDeletionSchedule(clock);
 
@@ -413,7 +413,7 @@ class AccountTest
         void shouldDoNothingWhenDeletionIsNotScheduled ()
         {
             Clock clock = Clock.fixed(UPDATE_TIME, ZoneOffset.UTC);
-            Account account = restore(USER_ID, UPDATED_AT, null, true);
+            Account account = restore(ACCOUNT_ID, UPDATED_AT, null, true);
 
             account.removeDeletionSchedule(clock);
 
@@ -425,7 +425,7 @@ class AccountTest
         @DisplayName("Should fail when clock is null")
         void shouldFailWhenClockIsNull ()
         {
-            Account account = restore(USER_ID, UPDATED_AT, UPDATED_AT, true);
+            Account account = restore(ACCOUNT_ID, UPDATED_AT, UPDATED_AT, true);
 
             assertThrows(NullPointerException.class, () -> account.removeDeletionSchedule(null));
 
@@ -438,7 +438,7 @@ class AccountTest
         void shouldFailWhenRemovalTimeIsBeforeCreation ()
         {
             Clock clock = Clock.fixed(CREATED_AT.minusSeconds(1), ZoneOffset.UTC);
-            Account account = restore(USER_ID, UPDATED_AT, UPDATED_AT, true);
+            Account account = restore(ACCOUNT_ID, UPDATED_AT, UPDATED_AT, true);
 
             assertThrows(IllegalArgumentException.class, () -> account.removeDeletionSchedule(clock));
 
@@ -451,7 +451,7 @@ class AccountTest
         void shouldFailWhenRemovalTimeIsBeforeUpdateTime ()
         {
             Clock clock = Clock.fixed(UPDATED_AT.minusSeconds(1), ZoneOffset.UTC);
-            Account account = restore(USER_ID, UPDATED_AT, UPDATED_AT, true);
+            Account account = restore(ACCOUNT_ID, UPDATED_AT, UPDATED_AT, true);
 
             assertThrows(IllegalArgumentException.class, () -> account.removeDeletionSchedule(clock));
 
@@ -464,7 +464,7 @@ class AccountTest
         void shouldRemoveDeletionScheduleWhenRemovalTimeEqualsUpdateTime ()
         {
             Clock clock = Clock.fixed(UPDATED_AT, ZoneOffset.UTC);
-            Account account = restore(USER_ID, UPDATED_AT, UPDATED_AT, true);
+            Account account = restore(ACCOUNT_ID, UPDATED_AT, UPDATED_AT, true);
 
             account.removeDeletionSchedule(clock);
 
@@ -486,7 +486,7 @@ class AccountTest
         void shouldUpdateWhenVerified (AccountFixtures.UpdateCase<?> updateCase)
         {
             Clock clock = Clock.fixed(UPDATE_TIME, ZoneOffset.UTC);
-            Account account = AccountFixtures.createUser(
+            Account account = AccountFixtures.createAccount(
                 CREATED_AT,
                 UPDATED_AT,
                 null,
@@ -505,7 +505,7 @@ class AccountTest
         void shouldUpdateWhenUnverified (AccountFixtures.UpdateCase<?> updateCase)
         {
             Clock clock = Clock.fixed(UPDATE_TIME, ZoneOffset.UTC);
-            Account account = AccountFixtures.createUser(
+            Account account = AccountFixtures.createAccount(
                 CREATED_AT,
                 UPDATED_AT,
                 null,
@@ -523,7 +523,7 @@ class AccountTest
         @DisplayName("Should fail when clock is null")
         void shouldFailWhenClockIsNull (AccountFixtures.UpdateCase<?> updateCase)
         {
-            Account account = AccountFixtures.createUser(
+            Account account = AccountFixtures.createAccount(
                 CREATED_AT,
                 UPDATED_AT,
                 null,
@@ -545,7 +545,7 @@ class AccountTest
         void shouldFailWhenFieldIsNull (AccountFixtures.UpdateCase<?> updateCase)
         {
             Clock clock = Clock.fixed(UPDATE_TIME, ZoneOffset.UTC);
-            Account account = AccountFixtures.createUser(
+            Account account = AccountFixtures.createAccount(
                 CREATED_AT,
                 UPDATED_AT,
                 null,
@@ -567,7 +567,7 @@ class AccountTest
         void shouldFailWhenScheduledForDeletion (AccountFixtures.UpdateCase<?> updateCase)
         {
             Clock clock = Clock.fixed(UPDATE_TIME, ZoneOffset.UTC);
-            Account account = AccountFixtures.createUser(
+            Account account = AccountFixtures.createAccount(
                 CREATED_AT,
                 UPDATED_AT,
                 UPDATED_AT,
@@ -575,7 +575,7 @@ class AccountTest
             );
 
             assertThrows(
-                UserUpdateFailedException.class,
+                AccountUpdateFailedException.class,
                 () -> updateCase.updateToNewValue(account, clock)
             );
 
@@ -589,7 +589,7 @@ class AccountTest
         void shouldDoNothingWhenFieldDoesNotChange (AccountFixtures.UpdateCase<?> updateCase)
         {
             Clock clock = Clock.fixed(UPDATE_TIME, ZoneOffset.UTC);
-            Account account = AccountFixtures.createUser(
+            Account account = AccountFixtures.createAccount(
                 CREATED_AT,
                 UPDATED_AT,
                 null,
@@ -608,7 +608,7 @@ class AccountTest
         void shouldFailWhenUpdateTimeIsBeforeCreatedAt (AccountFixtures.UpdateCase<?> updateCase)
         {
             Clock clock = Clock.fixed(CREATED_AT.minusSeconds(1), ZoneOffset.UTC);
-            Account account = AccountFixtures.createUser(
+            Account account = AccountFixtures.createAccount(
                 CREATED_AT,
                 UPDATED_AT,
                 null,
@@ -630,7 +630,7 @@ class AccountTest
         void shouldFailWhenUpdateTimeIsBeforeUpdatedAt (AccountFixtures.UpdateCase<?> updateCase)
         {
             Clock clock = Clock.fixed(UPDATED_AT.minusSeconds(1), ZoneOffset.UTC);
-            Account account = AccountFixtures.createUser(
+            Account account = AccountFixtures.createAccount(
                 CREATED_AT,
                 UPDATED_AT,
                 null,
@@ -652,7 +652,7 @@ class AccountTest
         void shouldUpdateWhenUpdateTimeEqualsUpdatedAt (AccountFixtures.UpdateCase<?> updateCase)
         {
             Clock clock = Clock.fixed(UPDATED_AT, ZoneOffset.UTC);
-            Account account = AccountFixtures.createUser(
+            Account account = AccountFixtures.createAccount(
                 CREATED_AT,
                 UPDATED_AT,
                 null,
@@ -674,9 +674,9 @@ class AccountTest
         @DisplayName("Should be equal when identifiers are equal")
         void shouldBeEqualWhenIdentifiersAreEqual ()
         {
-            Account first = restore(USER_ID, UPDATED_AT, null, true);
+            Account first = restore(ACCOUNT_ID, UPDATED_AT, null, true);
             Account second = Account.restore(
-                USER_ID,
+                ACCOUNT_ID,
                 Email.restore("another@example.com"),
                 EncodedPassword.from("another_encoded_password"),
                 Role.ADMIN,
@@ -694,7 +694,7 @@ class AccountTest
         @DisplayName("Should not be equal when identifiers differ")
         void shouldNotBeEqualWhenIdentifiersDiffer ()
         {
-            Account first = restore(USER_ID, UPDATED_AT, null, true);
+            Account first = restore(ACCOUNT_ID, UPDATED_AT, null, true);
             Account second = restore(
                 UUID.fromString("019b76da-a000-7000-8000-000000000002"),
                 UPDATED_AT,
@@ -709,7 +709,7 @@ class AccountTest
         @DisplayName("Should be equal to itself")
         void shouldBeEqualToItself ()
         {
-            Account account = restore(USER_ID, UPDATED_AT, null, true);
+            Account account = restore(ACCOUNT_ID, UPDATED_AT, null, true);
 
             assertEquals(account, account);
         }
@@ -718,10 +718,10 @@ class AccountTest
         @DisplayName("Should not be equal to null or another type")
         void shouldNotBeEqualToNullOrAnotherType ()
         {
-            Account account = restore(USER_ID, UPDATED_AT, null, true);
+            Account account = restore(ACCOUNT_ID, UPDATED_AT, null, true);
 
             assertNotEquals(null, account);
-            assertNotEquals(USER_ID, account);
+            assertNotEquals(ACCOUNT_ID, account);
         }
 
     }
