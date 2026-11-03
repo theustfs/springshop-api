@@ -2,6 +2,7 @@ package online.springshop.api.modules.auth.domain.account;
 
 import com.fasterxml.uuid.Generators;
 import lombok.Getter;
+import online.springshop.api.modules.auth.domain.account.exception.AccountDeletionScheduleSetFailedException;
 import online.springshop.api.modules.auth.domain.account.exception.AccountUpdateFailedException;
 import online.springshop.api.modules.auth.domain.account.exception.AccountVerificationFailedException;
 import online.springshop.api.modules.auth.domain.account.valueobject.Email;
@@ -141,6 +142,9 @@ public final class Account
         if (deletionScheduledAt != null && updatedAt.compareTo(deletionScheduledAt) != 0)
             throw new IllegalArgumentException("Deletion scheduled at must equal to updated at");
 
+        if (deletionScheduledAt != null && !verified)
+            throw new IllegalArgumentException("Deletion scheduled at must be null when not verified");
+
         if (updatedAt != null && updatedAt.isBefore(createdAt))
             throw new IllegalArgumentException("Updated at must not be before created at");
 
@@ -176,9 +180,6 @@ public final class Account
         if (clock == null)
             throw new NullPointerException("Clock must not be null");
 
-        if (deletionScheduledAt != null)
-            throw new UserVerificationFailedException("User is scheduled for deletion, cannot be verified");
-
         if (verified)
             return;
 
@@ -202,6 +203,9 @@ public final class Account
     {
         if (clock == null)
             throw new NullPointerException("Clock must not be null");
+
+        if (!verified)
+            throw new AccountDeletionScheduleSetFailedException("Account is not verified, cannot set deletion schedule");
 
         if (deletionScheduledAt != null)
             return;

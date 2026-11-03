@@ -1,6 +1,7 @@
 package online.springshop.api.modules.auth.domain.account;
 
 import online.springshop.api.fixtures.AccountFixtures;
+import online.springshop.api.modules.auth.domain.account.exception.AccountDeletionScheduleSetFailedException;
 import online.springshop.api.modules.auth.domain.account.exception.AccountUpdateFailedException;
 import online.springshop.api.modules.auth.domain.account.exception.AccountVerificationFailedException;
 import online.springshop.api.modules.auth.domain.account.valueobject.Email;
@@ -165,6 +166,16 @@ class AccountTest
         }
 
         @Test
+        @DisplayName("Should fail when scheduled for deletion and not verified")
+        void shouldFailWhenScheduledForDeletionAndNotVerified ()
+        {
+            assertThrows(
+                IllegalArgumentException.class,
+                () -> restore(ACCOUNT_ID, UPDATED_AT, UPDATED_AT, false)
+            );
+        }
+
+        @Test
         @DisplayName("Should fail when update time is before creation")
         void shouldFailWhenUpdateTimeIsBeforeCreation ()
         {
@@ -255,19 +266,6 @@ class AccountTest
         }
 
         @Test
-        @DisplayName("Should fail when scheduled for deletion")
-        void shouldFailWhenScheduledForDeletion ()
-        {
-            Clock clock = Clock.fixed(UPDATE_TIME, ZoneOffset.UTC);
-            Account account = restore(USER_ID, UPDATED_AT, UPDATED_AT, false);
-
-            assertThrows(UserVerificationFailedException.class, () -> account.verify(clock));
-
-            assertFalse(account.isVerified());
-            assertEquals(UPDATED_AT, account.getUpdatedAt());
-        }
-
-        @Test
         @DisplayName("Should fail when verification time is before creation")
         void shouldFailWhenVerificationTimeIsBeforeCreation ()
         {
@@ -323,6 +321,19 @@ class AccountTest
 
             assertEquals(UPDATE_TIME, account.getDeletionScheduledAt());
             assertEquals(UPDATE_TIME, account.getUpdatedAt());
+        }
+
+        @Test
+        @DisplayName("Should fail when not verified")
+        void shouldFailWhenNotVerified ()
+        {
+            Clock clock = Clock.fixed(UPDATE_TIME, ZoneOffset.UTC);
+            Account account = restore(ACCOUNT_ID, null, null, false);
+
+            assertThrows(
+                AccountDeletionScheduleSetFailedException.class,
+                () -> account.setDeletionSchedule(clock)
+            );
         }
 
         @Test
