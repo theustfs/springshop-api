@@ -4,6 +4,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.ConstraintViolationException;
 import online.springshop.api.modules.auth.domain.account.exception.*;
+import online.springshop.api.modules.auth.domain.useraction.exception.InvalidConfirmationCodeException;
+import online.springshop.api.modules.auth.domain.useraction.exception.UserActionConfirmationFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -28,6 +30,36 @@ import java.util.Map;
 public class GlobalExceptionHandler
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(UserActionConfirmationFailedException.class)
+    public ResponseEntity<ExceptionDetails> handleUserActionConfirmationFailedException (
+        UserActionConfirmationFailedException exception,
+        HttpServletRequest request
+    )
+    {
+        return ExceptionDetails.builder()
+            .title("Failed to complete user action")
+            .message(exception.getMessage())
+            .status(HttpServletResponse.SC_UNAUTHORIZED)
+            .instance(URI.create(request.getRequestURI()))
+            .build()
+            .toResponseEntity();
+    }
+
+    @ExceptionHandler(InvalidConfirmationCodeException.class)
+    public ResponseEntity<ExceptionDetails> handleInvalidConfirmationCodeException (
+        InvalidConfirmationCodeException exception,
+        HttpServletRequest request
+    )
+    {
+        return ExceptionDetails.builder()
+            .title("Invalid confirmation code")
+            .message(exception.getMessage())
+            .status(HttpServletResponse.SC_BAD_REQUEST)
+            .instance(URI.create(request.getRequestURI()))
+            .build()
+            .toResponseEntity();
+    }
 
     @ExceptionHandler(AccountVerificationFailedException.class)
     public ResponseEntity<ExceptionDetails> handleUserVerificationFailedException (

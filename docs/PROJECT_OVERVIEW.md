@@ -37,7 +37,7 @@ The repository is currently in its foundation stage. Runtime infrastructure, env
 └── pom.xml                  Maven dependencies and build plugins
 ```
 
-The production source currently contains the application entry point, shared configuration, API-exception abstractions, shared action results, the authentication account domain and persistence layers, and the beginning of the authentication module's security configuration. Future business code should continue to be grouped by feature rather than by technical type:
+The production source currently contains the application entry point, shared configuration, API-exception abstractions, shared action results, the authentication account and user-action domain foundations, account persistence adapters, and the beginning of the authentication module's security configuration. Future business code should continue to be grouped by feature rather than by technical type:
 
 ```text
 online.springshop.api
@@ -46,9 +46,16 @@ online.springshop.api
 │   ├── auth
 │   │   ├── application
 │   │   ├── domain
-│   │   │   └── account
-│   │   │       ├── Account
-│   │   │       ├── Role
+│   │   │   ├── account
+│   │   │   │   ├── Account
+│   │   │   │   ├── Role
+│   │   │   │   ├── exception
+│   │   │   │   ├── policy
+│   │   │   │   └── valueobject
+│   │   │   └── useraction
+│   │   │       ├── UserAction
+│   │   │       ├── ConfirmationChallenge
+│   │   │       ├── abstraction
 │   │   │       ├── exception
 │   │   │       ├── policy
 │   │   │       └── valueobject
@@ -77,7 +84,15 @@ Each feature owns its web contracts, use cases, domain model, persistence adapte
 
 The authentication module currently defines an `Account` aggregate for registered authentication identities and value objects for email addresses, raw passwords, and encoded passwords. A new account receives a time-based UUID, the `USER` role, its creation time from an injected `Clock`, and an unverified state. Trusted persisted accounts can be restored with their role, verification state, update time, and optional deletion-scheduling time, subject to timestamp and state invariants. Account identity and hash code are based on the account ID.
 
-The aggregate supports email verification, deletion scheduling and cancellation, and updates to the email, encoded password, and authorization role. These mutations use an injected `Clock`, reject time moving backwards, and become no-ops when the requested state is already present. Only verified accounts may schedule deletion, and restored unverified accounts cannot carry a deletion schedule. Because that invariant makes an unverified account with a deletion schedule invalid, verification no longer needs a separate scheduled-deletion rejection path. Ordinary updates remain rejected while deletion is scheduled. Challenge validation, reauthentication, authorization, and password encoding remain responsibilities of future application services rather than the aggregate.
+The aggregate supports email verification, deletion scheduling and cancellation, and updates to the email, encoded password, and authorization role. These mutations use an injected `Clock`, reject time moving backwards, and become no-ops when the requested state is already present. Only verified accounts may schedule deletion, and restored unverified accounts cannot carry a deletion schedule. Because that invariant makes an unverified account with a deletion schedule invalid, verification no longer needs a separate scheduled-deletion rejection path. Ordinary updates remain rejected while deletion is scheduled. The account aggregate does not validate confirmation challenges itself; future application services will coordinate completed user actions with the corresponding account mutation. Reauthentication, authorization, and password encoding also remain application or infrastructure responsibilities.
+
+The authentication domain also defines a `UserAction` aggregate for operations that require an ordered sequence of confirmation challenges. Each action receives its own time-based UUID, separately records the ID of the account that owns it, records an `ActionType`, and defensively copies its challenge list. The action ID is independent of the account ID, so one account may own multiple distinct actions, including repeated actions of the same type. New actions require at least one inactive challenge and activate the first challenge using an injected `Clock`. The first incomplete challenge is the current challenge. Completing it activates the next challenge, and completion becomes idempotent after every challenge has been completed. Restored actions require their persisted action and account IDs, non-empty trusted challenge state, and every incomplete challenge to carry an activation timestamp.
+
+Each `ConfirmationChallenge` stores an encoded code, its consumed-attempt count, completion state, and expiration timestamp. A challenge is valid for 15 minutes and permits at most three comparisons. Expiration and attempt limits are checked before matching, while every performed comparison consumes an attempt whether it succeeds or fails. Expected failures—an expired challenge, an exhausted attempt limit, or a code mismatch—are returned as structured `Result` errors. `UserAction` maps challenge-level errors to user-action error codes and exposes `areAllChallengesCompleted()` for application workflows.
+
+`ConfirmationCode` preserves leading zeroes by storing the raw numeric code as a string. Its `of()` factory validates untrusted submitted values and reports a stable `ConfirmationCodeError` through `InvalidConfirmationCodeException`; its `from()` factory validates values generated inside the API and uses standard argument exceptions when generator output is invalid. `EncodedConfirmationCode` wraps values produced by an external encoder. The domain depends only on `ConfirmationCodeMatcher`, a narrow matching abstraction, so encoding-library implementations remain outside the aggregate.
+
+Persisted confirmation challenges use their database ID for equality. New challenges have no ID and use reference identity until persistence reconstructs them. `UserAction` equality and hash code use its own action ID rather than its owning account ID. Persistence entities, repositories, migrations, encoder or matcher adapters, and complete application workflows for user actions have not yet been implemented.
 
 The authentication persistence boundary consists of an application-facing `AccountRepository` port and a Spring Data JPA adapter. The adapter maps between the framework-independent aggregate and `AccountEntity`, supports lookup by ID or normalized email, and offers pessimistic write-locking variants for concurrent application workflows. Application services own transaction boundaries so acquired locks remain active for the complete use case.
 
@@ -91,7 +106,7 @@ Flyway migration `V1__CREATE_ACCOUNTS_TABLE.sql` creates the `accounts` table, i
 
 ### API exception responses
 
-`shared.exception` provides the common JSON error contract for exceptions raised while Spring MVC processes a request. `GlobalExceptionHandler` maps each supported exception through a dedicated handler returning `ResponseEntity<ExceptionDetails>`. It covers account verification and update failures, request-body and parameter errors, validation failures, missing resources, unsupported methods or media types, database integrity conflicts, bad credentials and unexpected exceptions.
+`shared.exception` provides the common JSON error contract for exceptions raised while Spring MVC processes a request. `GlobalExceptionHandler` maps each supported exception through a dedicated handler returning `ResponseEntity<ExceptionDetails>`. It covers account verification and update failures, invalid confirmation codes, user-action completion failures, request-body and parameter errors, validation failures, missing resources, unsupported methods or media types, database integrity conflicts, bad credentials and unexpected exceptions.
 
 `ExceptionDetails` contains a client-safe title and message, the numeric HTTP status, and the request URI as `instance`. Its immutable `properties` map supports exception-specific details; entries are serialized as top-level JSON fields. Validation handlers use this mechanism to expose an `errors` object while the generic server-error response does not expose the original exception message or type.
 
@@ -178,7 +193,7 @@ Use the smallest test scope that proves the behavior:
 3. JPA or Redis slice tests for persistence adapters.
 4. Full integration tests for cross-layer workflows and infrastructure boundaries.
 
-The repository provides reusable test bases under `src/test/java/online/springshop/api/testsupport`. Plain unit tests currently cover shared result contracts, authentication value objects, and account creation, restoration, lifecycle mutations, update restrictions, time invariants, identity semantics, and domain-to-entity mapping. PostgreSQL-backed JPA tests cover account persistence, lookup, existence checks, pessimistic locking, bounded cleanup, lock retention, and skip-locked cleanup behavior. Cross-layer feature tests will be added when complete application workflows exist.
+The repository provides reusable test bases under `src/test/java/online/springshop/api/testsupport`. Plain unit tests currently cover shared result contracts; authentication value objects; account creation, restoration, lifecycle mutations, update restrictions, time invariants, identity semantics, and domain-to-entity mapping; and user-action creation, restoration, sequential challenge completion, activation, expiration, attempt limits, structured errors, and identity semantics. PostgreSQL-backed JPA tests cover account persistence, lookup, existence checks, pessimistic locking, bounded cleanup, lock retention, and skip-locked cleanup behavior. Cross-layer feature tests and user-action persistence tests will be added when their application and infrastructure boundaries exist.
 
 Run the complete verification suite with:
 
@@ -205,7 +220,7 @@ Target deployment behavior is:
 ## Current gaps and near-term roadmap
 
 1. Add an application context smoke test.
-2. Continue the authentication vertical slice beyond the account domain and persistence layers by establishing its application workflows and interface boundaries.
+2. Continue the authentication vertical slice beyond the account and user-action domain foundations by establishing application workflows and interface boundaries, then add user-action persistence and confirmation-code encoder or matcher adapters.
 3. Connect authentication to the deny-by-default security policy and provide JSON security entry-point responses.
 4. Implement authentication and authorization, and add security and token lifecycle tests.
 5. Implement the transactional outbox when asynchronous events first become necessary.
