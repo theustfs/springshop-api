@@ -120,8 +120,8 @@ public final class UserAction
      * @param challenges the persisted ordered challenge state
      * @return the restored user action
      * @throws NullPointerException when a required value or challenge is {@code null}
-     * @throws IllegalArgumentException when the challenge list is empty or an
-     * incomplete challenge is inactive
+     * @throws IllegalArgumentException when the challenge list is empty or
+     * current challenge is inactive
      */
     public static UserAction restore (
         UUID id,
@@ -133,11 +133,10 @@ public final class UserAction
         if (challenges.isEmpty())
             throw new IllegalArgumentException("Challenges list must not be empty");
 
-        challenges.stream()
-            .filter(c -> !c.isCompleted() && !c.isActive())
-            .findFirst()
+        getCurrentChallenge(challenges)
             .ifPresent(c -> {
-                throw new IllegalArgumentException("Current challenge must be active when restoring a user action");
+                if (!c.isActive())
+                    throw new IllegalArgumentException("Current challenge must be active when restoring a user action");
             });
 
         return new UserAction(id, accountId, actionType, challenges);
@@ -174,7 +173,7 @@ public final class UserAction
         if (clock == null)
             throw new NullPointerException("Clock must not be null");
 
-        Optional<ConfirmationChallenge> currentChallenge = getCurrentChallenge();
+        Optional<ConfirmationChallenge> currentChallenge = getCurrentChallenge(challenges);
 
         if (currentChallenge.isEmpty())
             return Result.success();
@@ -186,7 +185,7 @@ public final class UserAction
         if (challengeResult.isFailure())
             return getMappedResultFailure(challengeResult);
 
-        getCurrentChallenge().ifPresent(
+        getCurrentChallenge(challenges).ifPresent(
             nextChallenge -> nextChallenge.activate(clock)
         );
 
@@ -223,7 +222,7 @@ public final class UserAction
         );
     }
 
-    private Optional<ConfirmationChallenge> getCurrentChallenge ()
+    private static Optional<ConfirmationChallenge> getCurrentChallenge (List<ConfirmationChallenge> challenges)
     {
         return challenges.stream()
             .filter(challenge -> !challenge.isCompleted())

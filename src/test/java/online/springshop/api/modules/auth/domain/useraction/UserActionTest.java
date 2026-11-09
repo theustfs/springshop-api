@@ -256,8 +256,8 @@ class UserActionTest
             UUID accountId = Generators.timeBasedEpochGenerator().generate();
             ActionType actionType = ActionType.ACCOUNT_REGISTRATION;
             List<ConfirmationChallenge> challenges = List.of(
-                getConfirmationChallengeWithExpiration(Instant.now()),
-                getConfirmationChallenge(64L, 0, false, null)
+                getConfirmationChallenge(1L, 1, true, Instant.now()),
+                getConfirmationChallenge(2L, 0, false, null)
             );
 
             assertThrows(
