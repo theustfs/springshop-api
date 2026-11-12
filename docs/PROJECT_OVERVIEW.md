@@ -68,6 +68,15 @@ online.springshop.api
 │   │   │      └─ configuration
 │   │   │         └─ SpringSecurityConfiguration
 │   │   └── interfaces
+│   ├── messaging
+│   │   └── domain
+│   │       └── mail
+│   │           └── valueobject
+│   │               ├── HtmlBody
+│   │               ├── MailFrom
+│   │               ├── MailMessage
+│   │               ├── MailRecipient
+│   │               └── MailSubject
 │   └── ...
 └── shared
     ├── exception
@@ -79,6 +88,12 @@ online.springshop.api
 ```
 
 Each feature owns its web contracts, use cases, domain model, persistence adapters, and messaging adapters. Cross-feature dependencies should go through explicit application contracts or events. Shared code should remain small and contain concepts that genuinely apply to multiple modules.
+
+### Mail domain foundations
+
+The messaging module defines immutable value objects for the content required to send an email. `MailMessage` groups a `MailSubject`, `MailFrom`, `MailRecipient`, and rendered `HtmlBody`, and rejects a null component even when constructed through its builder. The component value objects reject null and blank values. `MailFrom` and `MailRecipient` additionally apply a deliberately simple email-format check that requires a non-whitespace local part, an `@` separator, and a dotted non-whitespace domain; they do not attempt full RFC email-address validation.
+
+The scalar mail value objects use their wrapped value for equality and hash codes. The messaging domain does not yet define a mail-delivery aggregate, delivery-status transitions, persistence, webhook handling, or event-driven mail workflows.
 
 ### Authentication domain foundations
 
