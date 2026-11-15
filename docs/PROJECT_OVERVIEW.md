@@ -71,6 +71,11 @@ online.springshop.api
 │   ├── messaging
 │   │   └── domain
 │   │       └── mail
+│   │           ├── MailDelivery
+│   │           ├── MailDeliveryId
+│   │           ├── MailDeliveryStatus
+│   │           ├── MailDeliveryUpdateResult
+│   │           ├── MailProviderId
 │   │           └── valueobject
 │   │               ├── HtmlBody
 │   │               ├── MailFrom
@@ -93,7 +98,13 @@ Each feature owns its web contracts, use cases, domain model, persistence adapte
 
 The messaging module defines immutable value objects for the content required to send an email. `MailMessage` groups a `MailSubject`, `MailFrom`, `MailRecipient`, and rendered `HtmlBody`, and rejects a null component even when constructed through its builder. The component value objects reject null and blank values. `MailFrom` and `MailRecipient` additionally apply a deliberately simple email-format check that requires a non-whitespace local part, an `@` separator, and a dotted non-whitespace domain; they do not attempt full RFC email-address validation.
 
-The scalar mail value objects use their wrapped value for equality and hash codes. The messaging domain does not yet define a mail-delivery aggregate, delivery-status transitions, persistence, webhook handling, or event-driven mail workflows.
+The scalar mail value objects use their wrapped value for equality and hash codes. The messaging domain also defines `MailDelivery`, an aggregate that begins in `SUBMITTED` after an external mail provider accepts a message. Its internal `MailDeliveryId` is independent of the provider-assigned `MailProviderId`, and aggregate equality and hash codes use only the internal ID.
+
+`MailDeliveryStatus` represents `SUBMITTED`, `SENT`, `DELIVERY_DELAYED`, `DELIVERED`, `SUPPRESSED`, `BOUNCED`, and `FAILED`. Provider events may skip intermediate states, so a submitted delivery can move directly to an applicable outcome. `DELIVERED`, `SUPPRESSED`, `BOUNCED`, and `FAILED` are terminal and cannot be replaced by later status events. A delayed delivery may later become delivered, bounced, or failed.
+
+The aggregate separately records local creation and status-change times from an injected `Clock` and the occurrence time reported by the provider. `updateStatus()` classifies an event as applied, stale, conflicting, duplicate, or an ignored regression. Older provider events, repeated statuses, equal-time conflicting statuses, and invalid regressions leave aggregate state unchanged. Restoration validates required identity, provider, status, and creation values and rejects a non-submitted state without a local status-change time or a local status change preceding creation.
+
+Plain unit tests cover mail-delivery creation, restoration invariants, every permitted transition, forward state skips, delayed-delivery outcomes, stale and conflicting provider events, duplicate handling, terminal-state protection, local time invariants, and aggregate identity. Mail-delivery persistence, webhook authentication and inbox deduplication, concurrent update handling, and event-driven sending workflows are not yet implemented.
 
 ### Authentication domain foundations
 
@@ -210,7 +221,7 @@ Use the smallest test scope that proves the behavior:
 3. JPA or Redis slice tests for persistence adapters.
 4. Full integration tests for cross-layer workflows and infrastructure boundaries.
 
-The repository provides reusable test bases under `src/test/java/online/springshop/api/testsupport`. Plain unit tests currently cover shared result contracts; authentication value objects; account creation, restoration, lifecycle mutations, update restrictions, time invariants, identity semantics, and domain-to-entity mapping; and user-action creation, restoration, sequential challenge completion, activation, expiration, attempt limits, structured errors, identity semantics, and persistence mapping. PostgreSQL-backed JPA tests cover account persistence, lookup, existence checks, pessimistic locking, bounded cleanup, lock retention, and skip-locked cleanup behavior. They also cover user-action creation and update, ordered challenge persistence, lookup and deletion by action or account, pessimistic locking, the one-current-action constraint, and database cascade behavior. Cross-layer authentication workflow tests will be added with the corresponding application services and interfaces.
+The repository provides reusable test bases under `src/test/java/online/springshop/api/testsupport`. Plain unit tests currently cover shared result contracts; mail content value objects and mail-delivery lifecycle behavior; authentication value objects; account creation, restoration, lifecycle mutations, update restrictions, time invariants, identity semantics, and domain-to-entity mapping; and user-action creation, restoration, sequential challenge completion, activation, expiration, attempt limits, structured errors, identity semantics, and persistence mapping. PostgreSQL-backed JPA tests cover account persistence, lookup, existence checks, pessimistic locking, bounded cleanup, lock retention, and skip-locked cleanup behavior. They also cover user-action creation and update, ordered challenge persistence, lookup and deletion by action or account, pessimistic locking, the one-current-action constraint, and database cascade behavior. Cross-layer authentication and messaging workflow tests will be added with the corresponding application services and interfaces.
 
 Run the complete verification suite with:
 
