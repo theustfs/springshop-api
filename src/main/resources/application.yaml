@@ -1,3 +1,7 @@
+app:
+  resend:
+    base-url: "https://api.resend.com/emails"
+
 spring:
   application:
     name: springshop

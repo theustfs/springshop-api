@@ -1,3 +1,7 @@
+app:
+  resend:
+    api-key: ${RESEND_API_KEY}
+
 spring:
   jpa:
     properties:
