@@ -69,19 +69,28 @@ online.springshop.api
 │   │   │         └─ SpringSecurityConfiguration
 │   │   └── interfaces
 │   ├── messaging
-│   │   └── domain
-│   │       └── mail
-│   │           ├── MailDelivery
-│   │           ├── MailDeliveryId
-│   │           ├── MailDeliveryStatus
-│   │           ├── MailDeliveryUpdateResult
-│   │           ├── MailProviderId
-│   │           └── valueobject
-│   │               ├── HtmlBody
-│   │               ├── MailFrom
-│   │               ├── MailMessage
-│   │               ├── MailRecipient
-│   │               └── MailSubject
+│   │   ├── application
+│   │   │   └── port
+│   │   │       └── HtmlTemplateRenderer
+│   │   ├── domain
+│   │   │   └── mail
+│   │   │       ├── MailDelivery
+│   │   │       ├── MailDeliveryId
+│   │   │       ├── MailDeliveryStatus
+│   │   │       ├── MailDeliveryUpdateResult
+│   │   │       ├── MailProviderId
+│   │   │       └── valueobject
+│   │   │           ├── HtmlBody
+│   │   │           ├── MailFrom
+│   │   │           ├── MailMessage
+│   │   │           ├── MailRecipient
+│   │   │           └── MailSubject
+│   │   └── infrastructure
+│   │       └── template
+│   │           └── thymeleaf
+│   │               ├── HtmlTemplateRendererThymeleafAdapter
+│   │               └── configuration
+│   │                   └── ThymeleafConfiguration
 │   └── ...
 └── shared
     ├── exception
@@ -102,11 +111,13 @@ The scalar mail value objects use their wrapped value for equality and hash code
 
 The messaging application boundary now includes a `MailSender` port for submitting a `MailMessage` with a stable `IdempotencyKey` and receiving the provider-assigned `MailProviderId`. `MailSenderResendAdapter` implements the port with Spring's `RestClient`: it maps the domain message to Resend's `from`, `to`, `subject`, and `html` request fields, sends the configured API key as authorization, forwards the idempotency key in the `Idempotency-Key` header, and maps the response UUID to `MailProviderId`. The adapter rejects null messages and idempotency keys before making a request and fails when Resend returns no response body. Resend's base URL and API key are supplied through validated application configuration rather than embedded in source.
 
+The application boundary also defines `HtmlTemplateRenderer`, which accepts an implementation-specific template name and named variables and returns a domain `HtmlBody`. `HtmlTemplateRendererThymeleafAdapter` implements that port with a dedicated Spring `TemplateEngine`. Its classpath resolver loads UTF-8 HTML templates from `/templates/`, appends the `.html` suffix, and exposes the supplied variable map to Thymeleaf. Template lookup or rendering failures propagate as runtime failures from the rendering engine.
+
 `MailDeliveryStatus` represents `SUBMITTED`, `SENT`, `DELIVERY_DELAYED`, `DELIVERED`, `SUPPRESSED`, `BOUNCED`, and `FAILED`. Provider events may skip intermediate states, so a submitted delivery can move directly to an applicable outcome. `DELIVERED`, `SUPPRESSED`, `BOUNCED`, and `FAILED` are terminal and cannot be replaced by later status events. A delayed delivery may later become delivered, bounced, or failed.
 
 The aggregate separately records local creation and status-change times from an injected `Clock` and the occurrence time reported by the provider. `updateStatus()` classifies an event as applied, stale, conflicting, duplicate, or an ignored regression. Older provider events, repeated statuses, equal-time conflicting statuses, and invalid regressions leave aggregate state unchanged. Restoration validates required identity, provider, status, and creation values and rejects a non-submitted state without a local status-change time or a local status change preceding creation.
 
-Plain unit tests cover mail-delivery creation, restoration invariants, every permitted transition, forward state skips, delayed-delivery outcomes, stale and conflicting provider events, duplicate handling, terminal-state protection, local time invariants, and aggregate identity. A focused REST-client test verifies the Resend adapter's serialized request, authorization and idempotency headers, provider-ID response mapping, null-input rejection, and missing-body failure. Mail-delivery persistence, webhook authentication and inbox deduplication, concurrent update handling, and event-driven sending workflows are not yet implemented.
+Plain unit tests cover mail-delivery creation, restoration invariants, every permitted transition, forward state skips, delayed-delivery outcomes, stale and conflicting provider events, duplicate handling, terminal-state protection, local time invariants, and aggregate identity. A focused REST-client test verifies the Resend adapter's serialized request, authorization and idempotency headers, provider-ID response mapping, null-input rejection, and missing-body failure. A Spring-assisted renderer test verifies Thymeleaf variable substitution and missing-template failure against a classpath test template. Mail-delivery persistence, webhook authentication and inbox deduplication, concurrent update handling, and event-driven sending workflows are not yet implemented.
 
 ### Authentication domain foundations
 
