@@ -464,6 +464,40 @@ class MailDeliveryTest
     }
 
     @Nested
+    @DisplayName("Terminal status report tests")
+    class TerminalStatusReportTests
+    {
+        @EnumSource(value = MailDeliveryStatus.class, names = {
+            "DELIVERED",
+            "BOUNCED",
+            "FAILED",
+            "SUPPRESSED"
+        })
+        @ParameterizedTest(name = "{index}: {0}")
+        @DisplayName("Should return true when status is terminal")
+        void shouldReturnTrueWhenStatusIsTerminal (MailDeliveryStatus status)
+        {
+            MailDelivery mailDelivery = restoreInStatus(status);
+
+            assertTrue(mailDelivery.isStatusTerminal());
+        }
+
+        @EnumSource(value = MailDeliveryStatus.class, names = {
+            "SUBMITTED",
+            "SENT",
+            "DELIVERY_DELAYED"
+        })
+        @ParameterizedTest(name = "{index}: {0}")
+        @DisplayName("Should return false when status is not terminal")
+        void shouldReturnFalseWhenStatusIsNotTerminal (MailDeliveryStatus status)
+        {
+            MailDelivery mailDelivery = restoreInStatus(status);
+
+            assertFalse(mailDelivery.isStatusTerminal());
+        }
+    }
+
+    @Nested
     @DisplayName("Identity tests")
     class IdentityTests
     {

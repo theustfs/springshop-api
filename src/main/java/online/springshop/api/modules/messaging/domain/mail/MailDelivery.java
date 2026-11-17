@@ -18,7 +18,7 @@ import java.util.Objects;
  * <p>Aggregate identity is defined exclusively by {@link MailDeliveryId}.</p>
  */
 @Getter
-public class MailDelivery
+public final class MailDelivery
 {
     private final MailDeliveryId id;
     private final MailProviderId providerId;
@@ -170,6 +170,18 @@ public class MailDelivery
         this.providerStatusChangedAt = newProviderStatusChangedAt;
 
         return MailDeliveryUpdateResult.APPLIED;
+    }
+
+    /**
+     * @return {@code boolean} whether the current status is terminal or not
+     */
+    public boolean isStatusTerminal ()
+    {
+        return switch (status)
+        {
+            case DELIVERED, BOUNCED, FAILED, SUPPRESSED -> true;
+            case SUBMITTED, SENT, DELIVERY_DELAYED -> false;
+        };
     }
 
     private boolean canTransition (MailDeliveryStatus newStatus)
