@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirm account deletion</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f7f2;color:#263238;font-family:Arial,Helvetica,sans-serif;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">Confirm your Springshop account deletion request and review the cancellation deadline.</div>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background-color:#f4f7f2;">
+    <tr>
+        <td align="center" style="padding:40px 16px;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:600px;background-color:#ffffff;border:1px solid #e3e9df;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(38,50,56,0.08);">
+                <tr>
+                    <td align="center" style="padding:28px 32px;background-color:#6db33f;">
+                        <div style="font-size:28px;font-weight:700;letter-spacing:2px;color:#ffffff;">SPRINGSHOP</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:40px 40px 32px;">
+                        <h1 style="margin:0 0 16px;text-align:center;font-size:26px;line-height:1.25;color:#263238;">Confirm account deletion</h1>
+                        <p style="margin:0 0 24px;text-align:center;font-size:16px;line-height:1.6;color:#546e5a;">We received a request to delete your Springshop account. Use the code below to confirm that request.</p>
+                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                                <td align="center" style="padding:8px 0 24px;">
+                                    <div style="display:inline-block;padding:16px 28px;border:1px solid #b8dca1;border-radius:10px;background-color:#f1f8ec;font-family:'Courier New',monospace;font-size:32px;font-weight:700;letter-spacing:8px;color:#4b8f29;" th:text="${CONFIRMATION_CODE}">######</div>
+                                </td>
+                            </tr>
+                        </table>
+                        <div style="margin:0 0 20px;padding:16px;border-left:4px solid #6db33f;border-radius:6px;background-color:#f1f8ec;text-align:center;">
+                            <div style="margin-bottom:4px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#4b8f29;">Cancellation period</div>
+                            <div style="font-size:16px;font-weight:700;color:#344b39;" th:text="${CANCELLATION_PERIOD}">January 1, 1972 at 00:00 +00:00</div>
+                        </div>
+                        <p style="margin:0;text-align:center;font-size:14px;line-height:1.6;color:#78907e;">The confirmation code expires in <span th:text="${CODE_EXPIRATION}">0</span> minutes. After confirming, you can cancel the deletion until the deadline above. If you didn’t request deletion, do not share the code and review your account security.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="center" style="padding:20px 32px;border-top:1px solid #edf1ea;font-size:12px;line-height:1.5;color:#8a9b8d;">Springshop account security</td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

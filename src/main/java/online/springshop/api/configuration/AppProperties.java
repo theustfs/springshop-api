@@ -5,7 +5,8 @@ import org.springframework.context.annotation.Configuration;
 
 @ConfigurationProperties(prefix = "app")
 public record AppProperties (
-    RESEND RESEND
+    RESEND RESEND,
+    MAIL MAIL
 )
 {
     public record RESEND (
@@ -15,4 +16,12 @@ public record AppProperties (
     {
 
     }
+
+    public record MAIL (
+        String FROM
+    )
+    {
+
+    }
+
 }

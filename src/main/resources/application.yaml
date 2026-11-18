@@ -2,6 +2,9 @@ app:
   resend:
     base-url: "https://api.resend.com/emails"
 
+  mail:
+    from: "Springshop <no-reply@springshop.online>"
+
 spring:
   application:
     name: springshop

@@ -72,6 +72,12 @@ online.springshop.api
 │   │   ├── application
 │   │   │   └── port
 │   │   │       └── HtmlTemplateRenderer
+│   │   │       └── usecase
+│   │   │           ├── SendAccountRegistrationConfirmationMailUseCase
+│   │   │           ├── SendAccountDeletionConfirmationMailUseCase
+│   │   │           ├── SendAccountEmailUpdateStepOneConfirmationMailUseCase
+│   │   │           ├── SendAccountEmailUpdateStepTwoConfirmationMailUseCase
+│   │   │           └── SendAccountPasswordUpdateConfirmationMailUseCase
 │   │   ├── domain
 │   │   │   └── mail
 │   │   │       ├── MailDelivery
@@ -113,13 +119,17 @@ The messaging application boundary now includes a `MailSender` port for submitti
 
 The application boundary also defines `HtmlTemplateRenderer`, which accepts an implementation-specific template name and named variables and returns a domain `HtmlBody`. `HtmlTemplateRendererThymeleafAdapter` implements that port with a dedicated Spring `TemplateEngine`. Its classpath resolver loads UTF-8 HTML templates from `/templates/`, appends the `.html` suffix, and exposes the supplied variable map to Thymeleaf. Template lookup or rendering failures propagate as runtime failures from the rendering engine.
 
+Five application use cases assemble and send confirmation messages for account registration, account deletion, the first and second steps of an email update, and password update. Each receives its typed account event, renders the matching template with a confirmation code and its expiration in minutes, builds a complete `MailMessage` using the configured sender address, submits it through `MailSender` with the event's idempotency key, and records a new `MailDelivery` using the injected application clock. RabbitMQ listener and dispatcher adapters route account events to typed handlers; handlers delegate to these use cases rather than composing mail themselves. The deletion event also carries the cancellation deadline as an `Instant`; the deletion use case formats it in UTC and supplies it to the template as `CANCELLATION_PERIOD`, where it is shown as the date through which deletion can be cancelled after confirmation.
+
+The HTML email templates live under `src/main/resources/templates/email/`: `account-registration.html`, `account-deletion.html`, `account-email-update-step-one.html`, `account-email-update-step-two.html`, and `account-password-update.html`. They share Springshop branding and responsive, table-based email markup, and use Thymeleaf text substitutions for the confirmation code and expiration; the deletion template also displays the formatted cancellation deadline. The email-update steps distinguish confirmation of the existing address from verification of the new address. Unit tests cover the five use cases' template variables, message/sender inputs, provider idempotency key, and delivery persistence; handler tests verify event delegation.
+
 `MailDeliveryStatus` represents `SUBMITTED`, `SENT`, `DELIVERY_DELAYED`, `DELIVERED`, `SUPPRESSED`, `BOUNCED`, and `FAILED`. Provider events may skip intermediate states, so a submitted delivery can move directly to an applicable outcome. `DELIVERED`, `SUPPRESSED`, `BOUNCED`, and `FAILED` are terminal and cannot be replaced by later status events. A delayed delivery may later become delivered, bounced, or failed.
 
 The aggregate separately records local creation and status-change times from an injected `Clock` and the occurrence time reported by the provider. `updateStatus()` classifies an event as applied, stale, conflicting, duplicate, or an ignored regression. Older provider events, repeated statuses, equal-time conflicting statuses, and invalid regressions leave aggregate state unchanged. Restoration validates required identity, provider, status, and creation values and rejects a non-submitted state without a local status-change time or a local status change preceding creation.
 
 Plain unit tests cover mail-delivery creation, restoration invariants, every permitted transition, forward state skips, delayed-delivery outcomes, stale and conflicting provider events, duplicate handling, terminal-state protection, local time invariants, and aggregate identity. A focused REST-client test verifies the Resend adapter's serialized request, authorization and idempotency headers, provider-ID response mapping, null-input rejection, and missing-body failure. A Spring-assisted renderer test verifies Thymeleaf variable substitution and missing-template failure against a classpath test template.
 
-The messaging application port defines `MailDeliveryRepository` for saving and updating deliveries, finding them by internal or provider ID, acquiring pessimistic write locks through either lookup, and deleting them by either ID. Its JPA adapter maps between the domain aggregate and persistence entity. Delete queries use PostgreSQL `FOR UPDATE SKIP LOCKED`, allowing cleanup to skip rows currently locked by another transaction. Repository compliance tests cover save and update, found and missing lookups, both locking lookups, deletion by both IDs, and the `SKIP LOCKED` behavior. Webhook authentication and inbox deduplication, concurrent update handling, and event-driven sending workflows are not yet implemented.
+The messaging application port defines `MailDeliveryRepository` for saving and updating deliveries, finding them by internal or provider ID, acquiring pessimistic write locks through either lookup, and deleting them by either ID. Its JPA adapter maps between the domain aggregate and persistence entity. Delete queries use PostgreSQL `FOR UPDATE SKIP LOCKED`, allowing cleanup to skip rows currently locked by another transaction. Repository compliance tests cover save and update, found and missing lookups, both locking lookups, deletion by both IDs, and the `SKIP LOCKED` behavior. Provider webhook authentication and inbox deduplication and concurrent status-update handling are not yet implemented.
 
 ### Authentication domain foundations
 
