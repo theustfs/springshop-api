@@ -32,19 +32,19 @@ public class SendAccountEmailUpdateStepOneConfirmationMailUseCase
         HtmlBody htmlBody = htmlTemplateRenderer.render(
             "/email/account-email-update-step-one",
             Map.of(
-                "CONFIRMATION_CODE", event.confirmationCode(),
-                "CODE_EXPIRATION", event.confirmationCodeExpiration().toMinutes()
+                "CONFIRMATION_CODE", event.getConfirmationCode(),
+                "CODE_EXPIRATION", event.getConfirmationCodeExpiration().toMinutes()
             )
         );
 
         MailMessage mailMessage = MailMessage.builder()
             .from(new MailFrom(appProperties.MAIL().FROM()))
-            .recipient(new MailRecipient(event.accountEmail()))
+            .recipient(new MailRecipient(event.getAccountEmail()))
             .subject(new MailSubject("Account email update confirmation"))
             .body(htmlBody)
             .build();
 
-        MailProviderId providerId = mailSender.send(mailMessage, event.idempotencyKey());
+        MailProviderId providerId = mailSender.send(mailMessage, event.getIdempotencyKey());
         MailDelivery mailDelivery = MailDelivery.from(providerId, appClock);
 
         mailDeliveryRepository.save(mailDelivery);

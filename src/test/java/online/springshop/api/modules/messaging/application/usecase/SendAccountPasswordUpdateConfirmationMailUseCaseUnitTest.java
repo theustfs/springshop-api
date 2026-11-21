@@ -78,14 +78,14 @@ class SendAccountPasswordUpdateConfirmationMailUseCaseUnitTest
 
         String templatePath = "/email/account-password-update";
         Map<String, Object> variables = Map.of(
-            "CONFIRMATION_CODE", event.confirmationCode(),
-            "CODE_EXPIRATION", event.confirmationCodeExpiration().toMinutes()
+            "CONFIRMATION_CODE", event.getConfirmationCode(),
+            "CODE_EXPIRATION", event.getConfirmationCodeExpiration().toMinutes()
         );
         HtmlBody htmlBody = new HtmlBody("<html></html>");
 
         MailMessage mailMessage = MailMessage.builder()
             .from(new MailFrom(APP_PROPERTIES_MAIL.FROM()))
-            .recipient(new MailRecipient(event.accountEmail()))
+            .recipient(new MailRecipient(event.getAccountEmail()))
             .subject(new MailSubject("Account password update confirmation"))
             .body(htmlBody)
             .build();
@@ -97,12 +97,12 @@ class SendAccountPasswordUpdateConfirmationMailUseCaseUnitTest
         MailDelivery mailDelivery = MailDelivery.from(providerId, appClock);
 
         when(htmlTemplateRenderer.render(templatePath, variables)).thenReturn(htmlBody);
-        when(mailSender.send(mailMessage, event.idempotencyKey())).thenReturn(providerId);
+        when(mailSender.send(mailMessage, event.getIdempotencyKey())).thenReturn(providerId);
 
         useCase.sendMail(event);
 
         verify(htmlTemplateRenderer, times(1)).render(templatePath, variables);
-        verify(mailSender, times(1)).send(mailMessage, event.idempotencyKey());
+        verify(mailSender, times(1)).send(mailMessage, event.getIdempotencyKey());
         verify(mailDeliveryRepository, times(1)).save(mailDeliveryCaptor.capture());
 
         MailDelivery capturedMailDelivery = mailDeliveryCaptor.getValue();

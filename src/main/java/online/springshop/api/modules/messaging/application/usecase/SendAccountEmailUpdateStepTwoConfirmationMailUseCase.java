@@ -44,7 +44,7 @@ public class SendAccountEmailUpdateStepTwoConfirmationMailUseCase
             .body(htmlBody)
             .build();
 
-        MailProviderId providerId = mailSender.send(mailMessage, event.idempotencyKey());
+        MailProviderId providerId = mailSender.send(mailMessage, event.getIdempotencyKey());
         MailDelivery mailDelivery = MailDelivery.from(providerId, appClock);
 
         mailDeliveryRepository.save(mailDelivery);

@@ -97,12 +97,12 @@ class SendAccountEmailUpdateStepTwoConfirmationMailUseCaseUnitTest
         MailDelivery mailDelivery = MailDelivery.from(providerId, appClock);
 
         when(htmlTemplateRenderer.render(templatePath, variables)).thenReturn(htmlBody);
-        when(mailSender.send(mailMessage, event.idempotencyKey())).thenReturn(providerId);
+        when(mailSender.send(mailMessage, event.getIdempotencyKey())).thenReturn(providerId);
 
         useCase.sendMail(event);
 
         verify(htmlTemplateRenderer, times(1)).render(templatePath, variables);
-        verify(mailSender, times(1)).send(mailMessage, event.idempotencyKey());
+        verify(mailSender, times(1)).send(mailMessage, event.getIdempotencyKey());
         verify(mailDeliveryRepository, times(1)).save(mailDeliveryCaptor.capture());
 
         MailDelivery capturedMailDelivery = mailDeliveryCaptor.getValue();
