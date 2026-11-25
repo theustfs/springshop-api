@@ -1,12 +1,14 @@
 package online.springshop.api.configuration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
+
+import java.time.Duration;
 
 @ConfigurationProperties(prefix = "app")
 public record AppProperties (
     RESEND RESEND,
-    MAIL MAIL
+    MAIL MAIL,
+    RABBITMQ RABBITMQ
 )
 {
     public record RESEND (
@@ -24,4 +26,23 @@ public record AppProperties (
 
     }
 
+    public record RABBITMQ (
+        QUEUES QUEUES
+    )
+    {
+        public record QUEUES (
+            QUEUE MESSAGING_ACCOUNT
+        )
+        {
+
+        }
+
+        public record QUEUE (
+            Duration retryDelay,
+            int retries
+        )
+        {
+
+        }
+    }
 }
