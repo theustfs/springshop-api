@@ -10,6 +10,8 @@ import online.springshop.api.modules.messaging.domain.mail.MailProviderId;
 import online.springshop.api.modules.messaging.domain.mail.valueobject.*;
 import online.springshop.api.shared.event.account.AccountDeletionEvent;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.ZoneOffset;
@@ -30,6 +32,7 @@ public class SendAccountDeletionConfirmationMailUseCase
     private static final DateTimeFormatter TIME_FORMATTER =
         DateTimeFormatter.ofPattern("MMMM dd',' yyyy 'at' hh:mm xxx", Locale.ENGLISH);
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void sendMail (AccountDeletionEvent event)
     {
         if (event == null)

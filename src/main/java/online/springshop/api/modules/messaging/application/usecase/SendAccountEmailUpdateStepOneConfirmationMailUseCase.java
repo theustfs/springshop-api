@@ -10,6 +10,8 @@ import online.springshop.api.modules.messaging.domain.mail.MailProviderId;
 import online.springshop.api.modules.messaging.domain.mail.valueobject.*;
 import online.springshop.api.shared.event.account.AccountEmailUpdateStepOneEvent;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.util.Map;
@@ -24,6 +26,7 @@ public class SendAccountEmailUpdateStepOneConfirmationMailUseCase
     private final HtmlTemplateRenderer htmlTemplateRenderer;
     private final MailDeliveryRepository mailDeliveryRepository;
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void sendMail (AccountEmailUpdateStepOneEvent event)
     {
         if (event == null)
