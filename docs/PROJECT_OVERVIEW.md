@@ -91,6 +91,17 @@ online.springshop.api
 │   │   │           ├── MailMessage
 │   │   │           ├── MailRecipient
 │   │   │           └── MailSubject
+│   │   ├── domain
+│   │   │   └── event
+│   │   │       ├── MessagingEvent
+│   │   │       ├── MessagingEventStatus
+│   │   │       └── exception
+│   │   │           └── MessagingEventProcessingException
+│   │   ├── infrastructure
+│   │   │   └── persistence
+│   │   │       ├── entity
+│   │   │       ├── mapper
+│   │   │       └── repository
 │   │   └── infrastructure
 │   │       └── template
 │   │           └── thymeleaf
@@ -130,6 +141,12 @@ The aggregate separately records local creation and status-change times from an 
 Plain unit tests cover mail-delivery creation, restoration invariants, every permitted transition, forward state skips, delayed-delivery outcomes, stale and conflicting provider events, duplicate handling, terminal-state protection, local time invariants, and aggregate identity. A focused REST-client test verifies the Resend adapter's serialized request, authorization and idempotency headers, provider-ID response mapping, null-input rejection, and missing-body failure. A Spring-assisted renderer test verifies Thymeleaf variable substitution and missing-template failure against a classpath test template.
 
 The messaging application port defines `MailDeliveryRepository` for saving and updating deliveries, finding them by internal or provider ID, acquiring pessimistic write locks through either lookup, and deleting them by either ID. Its JPA adapter maps between the domain aggregate and persistence entity. Delete queries use PostgreSQL `FOR UPDATE SKIP LOCKED`, allowing cleanup to skip rows currently locked by another transaction. Repository compliance tests cover save and update, found and missing lookups, both locking lookups, deletion by both IDs, and the `SKIP LOCKED` behavior. Provider webhook authentication and inbox deduplication and concurrent status-update handling are not yet implemented.
+
+### Messaging event domain and persistence
+
+`MessagingEvent` tracks a messaging event by its `IdempotencyKey`, with `CREATED`, `PROCESSING`, `PROCESSED`, and `FAILED` statuses. New events begin as `CREATED` with a creation time from an injected `Clock`. Status updates record the current clock time and enforce that it does not precede creation or the previous update; the domain currently does not constrain which status transitions are allowed. Events can be restored from persisted state.
+
+The `MessagingEventRepository` port is backed by a Spring Data JPA adapter and a `messaging_events` table managed by Flyway. The adapter supports save and lookup, pessimistic write-lock lookup, and atomic claim using an insert that ignores an existing ID. Cleanup deletes a bounded batch of records created before a threshold and uses PostgreSQL `FOR UPDATE SKIP LOCKED` to skip rows held by other transactions. Repository compliance tests cover save/update, duplicate and concurrent claims, lookup, locking, and bounded threshold cleanup; a separate JPA repository test covers skipping a locked row during cleanup.
 
 ### Authentication domain foundations
 
@@ -189,6 +206,8 @@ Client / Load Balancer
 - Flyway owns database schema evolution. Hibernate schema generation is disabled.
 
 When asynchronous domain events are introduced, business state and an outbox record should be written in the same PostgreSQL transaction. Begin with an application-managed outbox publisher. Consumers must be idempotent because delivery is at least once. Introducing CDC tooling such as Debezium should require a documented operational need and an architecture decision.
+
+RabbitMQ event idempotency is persisted in PostgreSQL through the `MessagingEventRepository` port. A messaging event is identified by its `IdempotencyKey` and stored with one of the `CREATED`, `PROCESSING`, `PROCESSED`, or `FAILED` statuses. The JPA adapter claims a key with an insert that ignores an existing ID, supports pessimistic row locking, and removes old records in bounded batches while skipping locked rows. Redis remains configured for cache and short-lived state; it is not the messaging event idempotency store.
 
 ## Application profiles
 
